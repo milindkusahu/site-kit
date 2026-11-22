@@ -16,7 +16,8 @@ async function box(locator: Locator) {
 async function adSlots(page: Page) {
   const slots = page.locator("[data-ad-slot]");
   const count = await slots.count();
-  return Promise.all(Array.from({ length: count }, (_, i) => box(slots.nth(i))));
+  const boxes = await Promise.all(Array.from({ length: count }, (_, i) => slots.nth(i).boundingBox()));
+  return boxes.filter((b) => b !== null);
 }
 
 for (const vp of VIEWPORTS) {

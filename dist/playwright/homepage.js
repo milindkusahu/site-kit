@@ -13,7 +13,8 @@ async function box(locator) {
 async function adSlots(page) {
     const slots = page.locator("[data-ad-slot]");
     const count = await slots.count();
-    return Promise.all(Array.from({ length: count }, (_, i) => box(slots.nth(i))));
+    const boxes = await Promise.all(Array.from({ length: count }, (_, i) => slots.nth(i).boundingBox()));
+    return boxes.filter((b) => b !== null);
 }
 for (const vp of VIEWPORTS) {
     test(`homepage tool is fully usable above the fold on ${vp.name} (${vp.width}px)`, async ({ page }) => {
