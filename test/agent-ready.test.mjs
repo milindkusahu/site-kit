@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isPreviewHost } from "../checks/audit/fetch.mjs";
 import { checkAgentReadiness } from "../checks/audit/technical.mjs";
 
 const GOOD_ROBOTS = "User-agent: *\nAllow: /\nContent-Signal: search=yes, ai-input=yes, ai-train=yes\n\nSitemap: https://x.example/sitemap.xml\n";
@@ -72,5 +73,15 @@ describe("launch audit: agent readiness", () => {
     const live = ready();
     site = { ...live, "/": { redirect: "/home/" }, "/home/": live["/"] };
     expect(await run({ markdown: false })).toEqual([]);
+  });
+});
+
+describe("launch audit: which hosts get the Cloudflare zone checks", () => {
+  it.each(["http://localhost:4321", "http://app.localhost", "http://mac.local:4321", "http://127.0.1.1:4321", "http://0.0.0.0:4321", "http://10.0.0.5", "http://172.20.1.2", "http://192.168.1.20:4321", "http://169.254.1.1", "http://[::1]:4321", "http://[fd12::1]", "http://[fe80::1]", "https://my-site.acct.workers.dev", "https://abc.my-site.pages.dev"])("treats %s as a preview", (url) => {
+    expect(isPreviewHost(url)).toBe(true);
+  });
+
+  it.each(["https://example.com", "https://www.example.com", "http://8.8.8.8", "http://172.32.0.1", "https://localhost.example.com"])("treats %s as live", (url) => {
+    expect(isPreviewHost(url)).toBe(false);
   });
 });

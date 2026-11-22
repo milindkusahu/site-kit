@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { checkBrief, checkExternalLinks, checkInternalLinkNearTop } from "./content.mjs";
-import { fetchRaw, follow, makeMapper } from "./fetch.mjs";
+import { fetchRaw, follow, isPreviewHost, makeMapper } from "./fetch.mjs";
 import { meta, parsePage } from "./html.mjs";
 import { checkAds, checkCopy, checkDuplicates, checkHeadings, checkImages, checkLinks, checkParagraphs, checkPlaceholders, checkTitleAndDescription } from "./onpage.mjs";
 import { headerProblems } from "../../headers/security.mjs";
@@ -137,11 +137,6 @@ async function checkLaunchFiles(ctx, pages) {
   if (res.status !== 200 || !res.body.trim()) ctx.fail("ads/ads-txt", "/ads.txt", "Ads are on but ads.txt is empty or missing.");
 }
 
-function isLocal(base) {
-  const host = new URL(base).hostname;
-  return host === "localhost" || host.endsWith(".localhost") || host === "127.0.0.1" || host === "[::1]";
-}
-
 export async function runAudit(base, options = {}) {
   const problems = [];
   const ctx = { base, launch: options.launch === true, fail: (rule, url, message) => problems.push({ rule, url, message }) };
@@ -164,7 +159,7 @@ export async function runAudit(base, options = {}) {
   await checkSecurityHeaders(ctx);
   if (ctx.launch) {
     await checkLaunchFiles(ctx, pages);
-    await checkAgentReadiness(ctx, { markdown: !isLocal(base) });
+    await checkAgentReadiness(ctx, { markdown: !isPreviewHost(base) });
   }
   return { problems, pages: pages.length };
 }

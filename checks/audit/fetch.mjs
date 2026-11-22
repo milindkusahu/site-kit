@@ -36,3 +36,14 @@ export function makeMapper(base, productionOrigin) {
     },
   };
 }
+
+// Hosts that can't carry the production zone's settings (Markdown for Agents): local, private-network and Cloudflare preview hosts.
+export function isPreviewHost(base) {
+  const host = new URL(base).hostname.toLowerCase();
+  if (host === "localhost" || /\.(localhost|local)$/.test(host) || /\.(workers|pages)\.dev$/.test(host)) return true;
+  if (host.startsWith("[")) return /^\[(::1|f[cd][0-9a-f]{0,2}:|fe[89ab][0-9a-f]:)/.test(host);
+  const ip = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(host);
+  if (!ip) return false;
+  const [a, b] = [Number(ip[1]), Number(ip[2])];
+  return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
