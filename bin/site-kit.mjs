@@ -6,14 +6,16 @@ import { headerOptions, loadConfig } from "./config.mjs";
 
 const [command, ...rest] = process.argv.slice(2);
 const kitFile = (rel) => fileURLToPath(new URL(`../${rel}`, import.meta.url));
+// import() needs a file:// URL: Node on Windows rejects a C: path.
+const kitModule = (rel) => import(new URL(`../${rel}`, import.meta.url).href);
 
 function asScript(rel) {
   process.argv = [process.argv[0] ?? "node", kitFile(rel), ...rest];
-  return import(kitFile(rel));
+  return kitModule(rel);
 }
 
 async function audit() {
-  const { formatProblems, runAudit } = await import(kitFile("checks/audit/index.mjs"));
+  const { formatProblems, runAudit } = await kitModule("checks/audit/index.mjs");
   const base = rest.find((a) => !a.startsWith("--"));
   if (!base) {
     process.stderr.write("Usage: site-kit audit <base-url> [--launch]\n  --launch  also fail on placeholders, missing ads.txt and agent readiness (Content Signals, Link header; markdown on the live site)\n");
@@ -31,7 +33,7 @@ async function audit() {
 }
 
 async function plan() {
-  const { runPlanChecks } = await import(kitFile("checks/plan/index.mjs"));
+  const { runPlanChecks } = await kitModule("checks/plan/index.mjs");
   const { problems, summary, ticked } = runPlanChecks(process.cwd());
   for (const line of summary) process.stdout.write(`${line}\n`);
   if (problems.length > 0) {
@@ -43,7 +45,7 @@ async function plan() {
 }
 
 async function secrets() {
-  const { scanRepo } = await import(kitFile("checks/secrets.mjs"));
+  const { scanRepo } = await kitModule("checks/secrets.mjs");
   const findings = scanRepo(process.cwd());
   if (findings.length > 0) {
     process.stderr.write(`Possible secrets (${findings.length}). Move them to environment variables, rotate any real key, or add a deliberate fake to .secrets-allow:\n${findings.map((f) => `  ${f.file}:${f.line}  ${f.name}`).join("\n")}\n`);
@@ -54,7 +56,7 @@ async function secrets() {
 }
 
 async function headers() {
-  const { headersFile, securityHeaders } = await import(kitFile("headers/security.mjs"));
+  const { headersFile, securityHeaders } = await kitModule("headers/security.mjs");
   const options = headerOptions(loadConfig());
   process.stdout.write(rest.includes("--file") ? headersFile(options) : `${JSON.stringify(securityHeaders(options), null, 2)}\n`);
   return 0;
