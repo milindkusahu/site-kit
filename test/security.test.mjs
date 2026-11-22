@@ -88,6 +88,12 @@ describe("security headers", () => {
     expect(problems).toContain("Cross-Origin-Embedder-Policy");
   });
 
+  it("points agents at llms.txt with a Link header on every path", () => {
+    const link = securityHeaders().find((h) => h.key === "Link")?.value ?? "";
+    expect(link).toContain('</llms.txt>; rel="describedby"; type="text/markdown"');
+    expect(headersFile()).toContain('  Link: </llms.txt>; rel="describedby"');
+  });
+
   it("writes a Cloudflare _headers file covering every path", () => {
     const file = headersFile();
     expect(file.startsWith("/*\n")).toBe(true);

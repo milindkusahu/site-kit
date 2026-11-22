@@ -98,3 +98,24 @@ export async function checkManifest(ctx) {
   if (sw.status !== 200) ctx.fail("tech/pwa", "/sw.js", "No service worker at /sw.js.");
   return undefined;
 }
+
+function linkTargets(header, rel) {
+  return header
+    .split(/,(?=\s*<)/)
+    .filter((part) => (/;\s*rel="?([^";]+)"?/i.exec(part)?.[1] ?? "").toLowerCase().split(/\s+/).includes(rel))
+    .map((part) => /<([^>]*)>/.exec(part)?.[1])
+    .filter(Boolean);
+}
+
+export async function checkAgentReadiness(ctx, { markdown = false } = {}) {
+  const robots = await fetchRaw(new URL("/robots.txt", ctx.base).href);
+  if (!/^content-signal:\s*\S/im.test(robots.body)) ctx.fail("agent/content-signals", "/robots.txt", "robots.txt has no Content-Signal line. site-kit's robotsTxt() writes one; set contentSignal in SITE to change the values.");
+  const home = new URL("/", ctx.base).href;
+  const res = await fetchRaw(home);
+  const [described] = linkTargets(res.headers.get("link") ?? "", "describedby");
+  if (!described) ctx.fail("agent/link-header", home, 'No Link header with rel="describedby" on the homepage (agents use it to find llms.txt). site-kit\'s securityHeaders() sends one.');
+  else if ((await fetchRaw(new URL(described, home).href)).status !== 200) ctx.fail("agent/link-header", home, `The Link header's describedby target ${described} doesn't return 200.`);
+  if (!markdown) return;
+  const md = await fetch(home, { headers: { Accept: "text/markdown", "Cache-Control": "no-cache", "User-Agent": "workflow-site-audit" } });
+  if (!(md.headers.get("content-type") ?? "").includes("text/markdown")) ctx.fail("agent/markdown", home, "Asking for Accept: text/markdown didn't return markdown. Turn on Markdown for Agents for the zone in Cloudflare (AI Crawl Control; Pro plan or above).");
+}
