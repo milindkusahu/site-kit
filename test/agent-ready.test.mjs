@@ -11,6 +11,7 @@ beforeAll(async () => {
   server = createServer((req, res) => {
     const reply = site[req.url ?? "/"];
     if (!reply) return void res.writeHead(404).end("missing");
+    if (reply.redirect) return void res.writeHead(301, { location: reply.redirect }).end();
     const wantsMarkdown = (req.headers.accept ?? "").includes("text/markdown");
     const type = wantsMarkdown && site.markdown ? "text/markdown; charset=utf-8" : reply.type;
     res.writeHead(200, { "content-type": type, ...(reply.link ? { link: reply.link } : {}) }).end(reply.body);
@@ -65,5 +66,11 @@ describe("launch audit: agent readiness", () => {
   it("fails a Content-Signal line with no value, even when another line follows", async () => {
     site = { ...ready(), "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\nContent-Signal: \n\nSitemap: https://x.example/sitemap.xml\n" } };
     expect(await run({ markdown: false })).toEqual(["agent/content-signals"]);
+  });
+
+  it("reads the Link header where the homepage redirects to (www to apex, http to https)", async () => {
+    const live = ready();
+    site = { ...live, "/": { redirect: "/home/" }, "/home/": live["/"] };
+    expect(await run({ markdown: false })).toEqual([]);
   });
 });
