@@ -52,6 +52,13 @@ describe("secret scanner", () => {
     expect(found).toContain(".env.production.local:.env file tracked by git");
     expect(found.some((f) => f.startsWith(".env.production.example"))).toBe(false);
   });
+
+  it("scans files whose names aren't ASCII", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "secrets-"));
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(path.join(dir, "guía.md"), `token: ${fake("ghp_", "x".repeat(36))}\n`);
+    expect(scanRepo(dir).map((f) => `${f.file}:${f.name}`)).toContain("guía.md:GitHub token");
+  });
 });
 
 describe("security headers", () => {

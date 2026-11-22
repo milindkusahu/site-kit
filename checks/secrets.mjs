@@ -18,8 +18,8 @@ const SKIP = /(^|\/)(node_modules|dist|\.next|\.astro|\.wrangler|test-results|pl
 const ALLOW_FILE = ".secrets-allow";
 
 function trackedFiles(root) {
-  const git = spawnSync("git", ["ls-files", "-co", "--exclude-standard"], { cwd: root, encoding: "utf8", windowsHide: true });
-  return git.status === 0 ? git.stdout.split("\n").filter(Boolean) : [];
+  const git = spawnSync("git", ["ls-files", "-z", "-co", "--exclude-standard"], { cwd: root, encoding: "utf8", windowsHide: true });
+  return git.status === 0 ? git.stdout.split("\0").filter(Boolean) : [];
 }
 
 export function scanText(text) {
