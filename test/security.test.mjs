@@ -42,6 +42,23 @@ describe("secret scanner", () => {
     writeFileSync(path.join(dir, ".secrets-allow"), `${token}\n`);
     expect(scanRepo(dir).map((f) => f.file)).not.toContain("a.ts");
   });
+
+  it("flags a tracked .env file with two suffixes, like .env.production.local", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "secrets-"));
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(path.join(dir, ".env.production.local"), `TOKEN=${fake("ghp_", "y".repeat(36))}\n`);
+    writeFileSync(path.join(dir, ".env.production.example"), "TOKEN=\n");
+    const found = scanRepo(dir).map((f) => `${f.file}:${f.name}`);
+    expect(found).toContain(".env.production.local:.env file tracked by git");
+    expect(found.some((f) => f.startsWith(".env.production.example"))).toBe(false);
+  });
+
+  it("scans files whose names aren't ASCII", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "secrets-"));
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(path.join(dir, "guía.md"), `token: ${fake("ghp_", "x".repeat(36))}\n`);
+    expect(scanRepo(dir).map((f) => `${f.file}:${f.name}`)).toContain("guía.md:GitHub token");
+  });
 });
 
 describe("security headers", () => {

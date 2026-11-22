@@ -19,6 +19,18 @@ function collectIds(value: unknown, defined: Set<string>, referenced: Set<string
   });
 }
 
+function hasParentLoop(pages: readonly SitePage[], page: SitePage): boolean {
+  const seen = new Set<string>();
+  let current: SitePage | undefined = page;
+  while (current && current.parent !== null) {
+    if (seen.has(current.path)) return true;
+    seen.add(current.path);
+    const parent: string = current.parent;
+    current = pages.find((p) => p.path === parent);
+  }
+  return false;
+}
+
 function pageProblems(site: SiteConfig, pages: readonly SitePage[], page: SitePage): string[] {
   const problems: string[] = [];
   const meta = buildRouteMetadata(site, page);
@@ -27,6 +39,10 @@ function pageProblems(site: SiteConfig, pages: readonly SitePage[], page: SitePa
   if (page.path !== withTrailingSlash(page.path)) problems.push(`${page.path}: path must end in a slash`);
   if (page.parent !== null && !pages.some((p) => p.path === page.parent)) {
     problems.push(`${page.path}: parent ${page.parent} isn't registered`);
+    return problems;
+  }
+  if (hasParentLoop(pages, page)) {
+    problems.push(`${page.path}: parent loop, the page is its own ancestor`);
     return problems;
   }
   const defined = new Set<string>();

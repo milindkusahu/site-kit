@@ -11,7 +11,10 @@ export function breadcrumbTrail(pages, page) {
     const trail = [];
     let current = page;
     while (current) {
-        trail.unshift({ name: current.breadcrumb, path: current.path });
+        const path = current.path;
+        if (trail.some((c) => c.path === path))
+            throw new Error(`Parent loop at ${path}. A page can't be its own ancestor; fix parent in SITE_PAGES.`);
+        trail.unshift({ name: current.breadcrumb, path });
         current = current.parent === null ? null : findPage(pages, current.parent);
     }
     return trail;

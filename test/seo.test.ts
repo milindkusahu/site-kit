@@ -49,6 +49,14 @@ describe("createSeo", () => {
     expect(problems).toContain("Duplicate title");
   });
 
+  it("reports a parent loop instead of hanging", () => {
+    const seo = createSeo(site, [page("/", { type: "home", parent: "/" }), page("/a/", { parent: "/b/" }), page("/b/", { parent: "/a/" })]);
+    const problems = seo.problems().join("\n");
+    expect(problems).toContain("/: parent loop");
+    expect(problems).toContain("/a/: parent loop");
+    expect(() => seo.trail("/a/")).toThrow("Parent loop");
+  });
+
   it("builds canonicals, trails and a sitemap of indexable pages only", () => {
     const seo = createSeo(site, [page("/", { type: "home" }), page("/a/"), page("/hidden/", { indexable: false })]);
     expect(seo.meta("/a/").canonical).toBe("https://test.example/a/");
