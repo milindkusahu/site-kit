@@ -13,8 +13,10 @@ export function sitemapXml(site: SiteConfig, pages: readonly SitePage[]): string
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
+export const DEFAULT_CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=yes";
+
 export function robotsTxt(site: SiteConfig): string {
-  return `User-agent: *\nAllow: /\nDisallow: /offline/\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
+  return `User-agent: *\nAllow: /\nDisallow: /offline/\nContent-Signal: ${site.contentSignal ?? DEFAULT_CONTENT_SIGNAL}\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
 }
 
 export function llmsTxt(site: SiteConfig, pages: readonly SitePage[]): string {

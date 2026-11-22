@@ -7,8 +7,9 @@ export function sitemapXml(site, pages) {
     const urls = indexable(pages).map((p) => `  <url>\n    <loc>${escapeXml(absoluteUrl(site.origin, p.path))}</loc>\n    <lastmod>${p.lastUpdated}</lastmod>\n  </url>`);
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
 }
+export const DEFAULT_CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=yes";
 export function robotsTxt(site) {
-    return `User-agent: *\nAllow: /\nDisallow: /offline/\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
+    return `User-agent: *\nAllow: /\nDisallow: /offline/\nContent-Signal: ${site.contentSignal ?? DEFAULT_CONTENT_SIGNAL}\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
 }
 export function llmsTxt(site, pages) {
     const lines = indexable(pages).map((p) => `- [${p.title}](${absoluteUrl(site.origin, p.path)}): ${p.description}`);

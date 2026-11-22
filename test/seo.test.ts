@@ -66,6 +66,15 @@ describe("createSeo", () => {
     expect(seo.meta("/hidden/").robots).toContain("noindex");
   });
 
+  it("declares Content Signals inside the User-agent: * group of robots.txt", () => {
+    const robots = createSeo(site, [page("/", { type: "home" })]).robotsTxt();
+    const group = robots.split("\n\n")[0] ?? "";
+    expect(group.startsWith("User-agent: *\n")).toBe(true);
+    expect(group).toContain("\nContent-Signal: search=yes, ai-input=yes, ai-train=yes");
+    const custom = createSeo({ ...site, contentSignal: "search=yes, ai-input=yes, ai-train=no" }, [page("/", { type: "home" })]).robotsTxt();
+    expect(custom).toContain("Content-Signal: search=yes, ai-input=yes, ai-train=no\n");
+  });
+
   it("title building is idempotent", () => {
     const seo = createSeo(site, [page("/", { type: "home" })]);
     fc.assert(fc.property(fc.string(), (t) => { expect(seo.title(seo.title(t))).toBe(seo.title(t)); }));

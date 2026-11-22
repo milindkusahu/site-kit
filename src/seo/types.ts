@@ -18,6 +18,7 @@ export type SiteConfig = {
   readonly author: AuthorConfig;
   readonly sameAs: readonly string[];
   readonly launched: string;
+  readonly contentSignal?: string;
 };
 
 export type PageType =

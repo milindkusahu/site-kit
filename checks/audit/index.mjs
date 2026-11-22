@@ -6,7 +6,7 @@ import { meta, parsePage } from "./html.mjs";
 import { checkAds, checkCopy, checkDuplicates, checkHeadings, checkImages, checkLinks, checkParagraphs, checkPlaceholders, checkTitleAndDescription } from "./onpage.mjs";
 import { headerProblems } from "../../headers/security.mjs";
 import { checkSimilarity } from "./similarity.mjs";
-import { checkHead, checkHreflang, checkManifest, checkQueryCanonical, checkRobots, checkSoft404, checkStructuredData, loadSitemap } from "./technical.mjs";
+import { checkAgentReadiness, checkHead, checkHreflang, checkManifest, checkQueryCanonical, checkRobots, checkSoft404, checkStructuredData, loadSitemap } from "./technical.mjs";
 
 export const CONTENT_TYPES = new Set(["home", "tool", "howto", "comparison", "explainer", "hub"]);
 const MAX_PAGES = 1000;
@@ -137,6 +137,11 @@ async function checkLaunchFiles(ctx, pages) {
   if (res.status !== 200 || !res.body.trim()) ctx.fail("ads/ads-txt", "/ads.txt", "Ads are on but ads.txt is empty or missing.");
 }
 
+function isLocal(base) {
+  const host = new URL(base).hostname;
+  return host === "localhost" || host.endsWith(".localhost") || host === "127.0.0.1" || host === "[::1]";
+}
+
 export async function runAudit(base, options = {}) {
   const problems = [];
   const ctx = { base, launch: options.launch === true, fail: (rule, url, message) => problems.push({ rule, url, message }) };
@@ -157,7 +162,10 @@ export async function runAudit(base, options = {}) {
   await checkRobots(ctx);
   await checkManifest(ctx);
   await checkSecurityHeaders(ctx);
-  if (ctx.launch) await checkLaunchFiles(ctx, pages);
+  if (ctx.launch) {
+    await checkLaunchFiles(ctx, pages);
+    await checkAgentReadiness(ctx, { markdown: !isLocal(base) });
+  }
   return { problems, pages: pages.length };
 }
 

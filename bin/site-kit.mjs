@@ -16,7 +16,7 @@ async function audit() {
   const { formatProblems, runAudit } = await import(kitFile("checks/audit/index.mjs"));
   const base = rest.find((a) => !a.startsWith("--"));
   if (!base) {
-    process.stderr.write("Usage: site-kit audit <base-url> [--launch]\n  --launch  also fail on placeholders and missing ads.txt\n");
+    process.stderr.write("Usage: site-kit audit <base-url> [--launch]\n  --launch  also fail on placeholders, missing ads.txt and agent readiness (Content Signals, Link header; markdown on the live site)\n");
     return 1;
   }
   const { problems, pages } = await runAudit(base, { launch: rest.includes("--launch") });
