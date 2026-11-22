@@ -36,6 +36,7 @@ describe("secret scanner", () => {
     writeFileSync(path.join(dir, "a.ts"), `export const t = "${token}";\n`);
     writeFileSync(path.join(dir, ".env"), "X=1\n");
     writeFileSync(path.join(dir, ".env.example"), "X=\n");
+    execFileSync("git", ["add", ".env"], { cwd: dir });
     const found = scanRepo(dir).map((f) => `${f.file}:${f.name}`);
     expect(found).toContain("a.ts:GitHub token");
     expect(found).toContain(".env:.env file tracked by git");
@@ -49,9 +50,25 @@ describe("secret scanner", () => {
     execFileSync("git", ["init", "-q"], { cwd: dir });
     writeFileSync(path.join(dir, ".env.production.local"), `TOKEN=${fake("ghp_", "y".repeat(36))}\n`);
     writeFileSync(path.join(dir, ".env.production.example"), "TOKEN=\n");
+    execFileSync("git", ["add", ".env.production.local"], { cwd: dir });
     const found = scanRepo(dir).map((f) => `${f.file}:${f.name}`);
     expect(found).toContain(".env.production.local:.env file tracked by git");
     expect(found.some((f) => f.startsWith(".env.production.example"))).toBe(false);
+  });
+
+  it("says whether a .env file is tracked or only not ignored", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "secrets-"));
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(path.join(dir, ".env"), "X=1\n");
+    writeFileSync(path.join(dir, ".env.production.local"), "X=1\n");
+    writeFileSync(path.join(dir, ".env.ignored"), "X=1\n");
+    writeFileSync(path.join(dir, ".gitignore"), ".env.ignored\n");
+    execFileSync("git", ["add", ".env"], { cwd: dir });
+    const found = scanRepo(dir).map((f) => `${f.file}:${f.name}`);
+    expect(found).toContain(".env:.env file tracked by git");
+    expect(found).toContain(".env.production.local:.env file not ignored by git");
+    expect(found.some((f) => f.startsWith(".env.production.local:.env file tracked"))).toBe(false);
+    expect(found.some((f) => f.startsWith(".env.ignored"))).toBe(false);
   });
 
   it("scans files whose names aren't ASCII", () => {
