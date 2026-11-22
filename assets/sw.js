@@ -1,4 +1,4 @@
-const VERSION = "v1";
+const VERSION = "v2";
 const PAGES = `pages-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = "/offline/";
@@ -19,8 +19,10 @@ self.addEventListener("activate", (event) => {
 function networkFirst(request) {
   return fetch(request)
     .then((response) => {
-      const copy = response.clone();
-      caches.open(PAGES).then((cache) => cache.put(request, copy));
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(PAGES).then((cache) => cache.put(request, copy));
+      }
       return response;
     })
     .catch(() => caches.match(request).then((hit) => hit ?? caches.match(OFFLINE)));
@@ -31,8 +33,10 @@ function cacheFirst(request) {
     (hit) =>
       hit ??
       fetch(request).then((response) => {
-        const copy = response.clone();
-        caches.open(ASSETS).then((cache) => cache.put(request, copy));
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(ASSETS).then((cache) => cache.put(request, copy));
+        }
         return response;
       }),
   );
