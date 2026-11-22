@@ -38,6 +38,8 @@ Each project has a `site-kit.config.json` at its root:
 
 `headersFile` is for Astro on Cloudflare. Next.js projects leave it out and call `securityHeaders()` from `next.config.ts`.
 
+The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
+
 ## Releasing
 
 1. Change the code and add or update a test.

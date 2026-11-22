@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { headerOptions } from "../bin/config.mjs";
 import { scanRepo, scanText } from "../checks/secrets.mjs";
 import { headerProblems, headersFile, securityHeaders } from "../headers/security.mjs";
 
@@ -92,6 +93,13 @@ describe("security headers", () => {
     const link = securityHeaders().find((h) => h.key === "Link")?.value ?? "";
     expect(link).toContain('</llms.txt>; rel="describedby"; type="text/markdown"');
     expect(headersFile()).toContain('  Link: </llms.txt>; rel="describedby"');
+  });
+
+  it("leaves the Link header out for a site that doesn't serve llms.txt", () => {
+    expect(securityHeaders({ agentLinks: false }).some((h) => h.key === "Link")).toBe(false);
+    expect(headersFile({ agentLinks: false })).not.toContain("Link:");
+    expect(headerOptions({ agentLinks: false }, {}).agentLinks).toBe(false);
+    expect(headerOptions({}, {}).agentLinks).toBe(true);
   });
 
   it("writes a Cloudflare _headers file covering every path", () => {
