@@ -19,16 +19,25 @@ function collectIds(value: unknown, defined: Set<string>, referenced: Set<string
   });
 }
 
-function hasParentLoop(pages: readonly SitePage[], page: SitePage): boolean {
+type AncestorProblem = { kind: "loop"; at: string } | { kind: "missing"; ancestor: string; parent: string };
+
+function ancestorProblem(pages: readonly SitePage[], page: SitePage): AncestorProblem | null {
   const seen = new Set<string>();
-  let current: SitePage | undefined = page;
-  while (current && current.parent !== null) {
-    if (seen.has(current.path)) return true;
+  let current: SitePage = page;
+  while (current.parent !== null) {
+    if (seen.has(current.path)) return { kind: "loop", at: current.path };
     seen.add(current.path);
     const parent: string = current.parent;
-    current = pages.find((p) => p.path === parent);
+    const next = pages.find((p) => p.path === parent);
+    if (!next) return { kind: "missing", ancestor: current.path, parent };
+    current = next;
   }
-  return false;
+  return null;
+}
+
+function ancestorMessage(page: SitePage, problem: AncestorProblem): string {
+  if (problem.kind === "missing") return page.path === problem.ancestor ? `${page.path}: parent ${problem.parent} isn't registered` : `${page.path}: ancestor ${problem.ancestor} has parent ${problem.parent}, which isn't registered`;
+  return problem.at === page.path ? `${page.path}: parent loop, the page is its own ancestor` : `${page.path}: its ancestors loop at ${problem.at}`;
 }
 
 function pageProblems(site: SiteConfig, pages: readonly SitePage[], page: SitePage): string[] {
@@ -37,12 +46,9 @@ function pageProblems(site: SiteConfig, pages: readonly SitePage[], page: SitePa
   if (meta.title.length < TITLE_LIMITS.min || meta.title.length > TITLE_LIMITS.max) problems.push(`${page.path}: title is ${meta.title.length} characters (${TITLE_LIMITS.min} to ${TITLE_LIMITS.max}): "${meta.title}"`);
   if (page.description.length < DESCRIPTION_LIMITS.min || page.description.length > DESCRIPTION_LIMITS.max) problems.push(`${page.path}: description is ${page.description.length} characters (${DESCRIPTION_LIMITS.min} to ${DESCRIPTION_LIMITS.max})`);
   if (page.path !== withTrailingSlash(page.path)) problems.push(`${page.path}: path must end in a slash`);
-  if (page.parent !== null && !pages.some((p) => p.path === page.parent)) {
-    problems.push(`${page.path}: parent ${page.parent} isn't registered`);
-    return problems;
-  }
-  if (hasParentLoop(pages, page)) {
-    problems.push(`${page.path}: parent loop, the page is its own ancestor`);
+  const ancestors = ancestorProblem(pages, page);
+  if (ancestors) {
+    problems.push(ancestorMessage(page, ancestors));
     return problems;
   }
   const defined = new Set<string>();

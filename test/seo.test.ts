@@ -57,6 +57,20 @@ describe("createSeo", () => {
     expect(() => seo.trail("/a/")).toThrow("Parent loop");
   });
 
+  it("reports a missing ancestor further up instead of throwing", () => {
+    const seo = createSeo(site, [page("/", { type: "home" }), page("/c/", { parent: "/a/" }), page("/a/", { parent: "/missing/" })]);
+    const problems = seo.problems().join("\n");
+    expect(problems).toContain("/a/: parent /missing/ isn't registered");
+    expect(problems).toContain("/c/: ancestor /a/ has parent /missing/, which isn't registered");
+  });
+
+  it("names the loop when a page sits below one but isn't in it", () => {
+    const seo = createSeo(site, [page("/", { type: "home" }), page("/c/", { parent: "/a/" }), page("/a/", { parent: "/b/" }), page("/b/", { parent: "/a/" })]);
+    const problems = seo.problems();
+    expect(problems).toContain("/a/: parent loop, the page is its own ancestor");
+    expect(problems).toContain("/c/: its ancestors loop at /a/");
+  });
+
   it("builds canonicals, trails and a sitemap of indexable pages only", () => {
     const seo = createSeo(site, [page("/", { type: "home" }), page("/a/"), page("/hidden/", { indexable: false })]);
     expect(seo.meta("/a/").canonical).toBe("https://test.example/a/");

@@ -18,17 +18,25 @@ function collectIds(value, defined, referenced) {
         collectIds(child, defined, referenced);
     });
 }
-function hasParentLoop(pages, page) {
+function ancestorProblem(pages, page) {
     const seen = new Set();
     let current = page;
-    while (current && current.parent !== null) {
+    while (current.parent !== null) {
         if (seen.has(current.path))
-            return true;
+            return { kind: "loop", at: current.path };
         seen.add(current.path);
         const parent = current.parent;
-        current = pages.find((p) => p.path === parent);
+        const next = pages.find((p) => p.path === parent);
+        if (!next)
+            return { kind: "missing", ancestor: current.path, parent };
+        current = next;
     }
-    return false;
+    return null;
+}
+function ancestorMessage(page, problem) {
+    if (problem.kind === "missing")
+        return page.path === problem.ancestor ? `${page.path}: parent ${problem.parent} isn't registered` : `${page.path}: ancestor ${problem.ancestor} has parent ${problem.parent}, which isn't registered`;
+    return problem.at === page.path ? `${page.path}: parent loop, the page is its own ancestor` : `${page.path}: its ancestors loop at ${problem.at}`;
 }
 function pageProblems(site, pages, page) {
     const problems = [];
@@ -39,12 +47,9 @@ function pageProblems(site, pages, page) {
         problems.push(`${page.path}: description is ${page.description.length} characters (${DESCRIPTION_LIMITS.min} to ${DESCRIPTION_LIMITS.max})`);
     if (page.path !== withTrailingSlash(page.path))
         problems.push(`${page.path}: path must end in a slash`);
-    if (page.parent !== null && !pages.some((p) => p.path === page.parent)) {
-        problems.push(`${page.path}: parent ${page.parent} isn't registered`);
-        return problems;
-    }
-    if (hasParentLoop(pages, page)) {
-        problems.push(`${page.path}: parent loop, the page is its own ancestor`);
+    const ancestors = ancestorProblem(pages, page);
+    if (ancestors) {
+        problems.push(ancestorMessage(page, ancestors));
         return problems;
     }
     const defined = new Set();
