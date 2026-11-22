@@ -39,7 +39,7 @@ export function scanRepo(root) {
       for (const name of scanText(line)) if (!allow.some((a) => line.includes(a))) findings.push({ file: rel, line: i + 1, name });
     });
   }
-  const envTracked = trackedFiles(root).filter((f) => /(^|\/)\.env(\.[a-z]+)?$/.test(f) && !f.endsWith(".example"));
+  const envTracked = trackedFiles(root).filter((f) => /(^|\/)\.env(\.[^/]+)?$/.test(f) && !f.endsWith(".example"));
   for (const f of envTracked) findings.push({ file: f, line: 0, name: ".env file tracked by git" });
   return findings;
 }
