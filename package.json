@@ -1,6 +1,6 @@
 {
   "name": "@milindkusahu/site-kit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shared SEO core, quality checks, security headers and test helpers for Next.js and Astro sites.",
   "type": "module",
   "license": "MIT",
