@@ -9,7 +9,7 @@ export function sitemapXml(site, pages) {
 }
 export const DEFAULT_CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=yes";
 export function robotsTxt(site) {
-    return `User-agent: *\nAllow: /\nDisallow: /offline/\nContent-Signal: ${site.contentSignal ?? DEFAULT_CONTENT_SIGNAL}\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
+    return `User-agent: *\nAllow: /\nDisallow: /offline/\nContent-Signal: ${site.contentSignal?.trim() || DEFAULT_CONTENT_SIGNAL}\n\nSitemap: ${absoluteUrl(site.origin, "/sitemap.xml")}\n`;
 }
 export function llmsTxt(site, pages) {
     const lines = indexable(pages).map((p) => `- [${p.title}](${absoluteUrl(site.origin, p.path)}): ${p.description}`);

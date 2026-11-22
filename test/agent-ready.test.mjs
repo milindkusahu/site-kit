@@ -61,4 +61,9 @@ describe("launch audit: agent readiness", () => {
     expect(await run({ markdown: false })).toEqual([]);
     expect(await run({ markdown: true })).toEqual(["agent/markdown"]);
   });
+
+  it("fails a Content-Signal line with no value, even when another line follows", async () => {
+    site = { ...ready(), "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\nContent-Signal: \n\nSitemap: https://x.example/sitemap.xml\n" } };
+    expect(await run({ markdown: false })).toEqual(["agent/content-signals"]);
+  });
 });

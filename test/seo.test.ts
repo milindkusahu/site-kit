@@ -75,6 +75,13 @@ describe("createSeo", () => {
     expect(custom).toContain("Content-Signal: search=yes, ai-input=yes, ai-train=no\n");
   });
 
+  it("falls back to the default Content Signals when contentSignal is blank", () => {
+    for (const blank of ["", "   "]) {
+      const robots = createSeo({ ...site, contentSignal: blank }, [page("/", { type: "home" })]).robotsTxt();
+      expect(robots).toContain("Content-Signal: search=yes, ai-input=yes, ai-train=yes\n");
+    }
+  });
+
   it("title building is idempotent", () => {
     const seo = createSeo(site, [page("/", { type: "home" })]);
     fc.assert(fc.property(fc.string(), (t) => { expect(seo.title(seo.title(t))).toBe(seo.title(t)); }));

@@ -109,7 +109,7 @@ function linkTargets(header, rel) {
 
 export async function checkAgentReadiness(ctx, { markdown = false } = {}) {
   const robots = await fetchRaw(new URL("/robots.txt", ctx.base).href);
-  if (!/^content-signal:\s*\S/im.test(robots.body)) ctx.fail("agent/content-signals", "/robots.txt", "robots.txt has no Content-Signal line. site-kit's robotsTxt() writes one; set contentSignal in SITE to change the values.");
+  if (!/^content-signal:[ \t]*\S/im.test(robots.body)) ctx.fail("agent/content-signals", "/robots.txt", "robots.txt has no Content-Signal line. site-kit's robotsTxt() writes one; set contentSignal in SITE to change the values.");
   const home = new URL("/", ctx.base).href;
   const res = await fetchRaw(home);
   const [described] = linkTargets(res.headers.get("link") ?? "", "describedby");
