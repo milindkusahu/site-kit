@@ -95,7 +95,7 @@ for (const file of sourceFiles) {
 
 for (const file of config.contentDirs.flatMap((d) => walk(path.join(root, d))).filter((f) => /\.mdx?$/.test(f))) {
   const text = readFileSync(file, "utf8");
-  const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
+  const body = text.replace(/^﻿?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, "");
   const offset = text.length - body.length;
   let seenLede = false;
   let cursor = 0;
