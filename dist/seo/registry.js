@@ -18,6 +18,18 @@ function collectIds(value, defined, referenced) {
         collectIds(child, defined, referenced);
     });
 }
+function hasParentLoop(pages, page) {
+    const seen = new Set();
+    let current = page;
+    while (current && current.parent !== null) {
+        if (seen.has(current.path))
+            return true;
+        seen.add(current.path);
+        const parent = current.parent;
+        current = pages.find((p) => p.path === parent);
+    }
+    return false;
+}
 function pageProblems(site, pages, page) {
     const problems = [];
     const meta = buildRouteMetadata(site, page);
@@ -29,6 +41,10 @@ function pageProblems(site, pages, page) {
         problems.push(`${page.path}: path must end in a slash`);
     if (page.parent !== null && !pages.some((p) => p.path === page.parent)) {
         problems.push(`${page.path}: parent ${page.parent} isn't registered`);
+        return problems;
+    }
+    if (hasParentLoop(pages, page)) {
+        problems.push(`${page.path}: parent loop, the page is its own ancestor`);
         return problems;
     }
     const defined = new Set();
