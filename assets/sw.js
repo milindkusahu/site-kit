@@ -23,6 +23,8 @@ function networkFirst(request) {
         const copy = response.clone();
         caches.open(PAGES).then((cache) => cache.put(request, copy));
       }
+      // A server error (outage, mid-deploy) shows the last good copy if there is one; a 404 means the page is gone.
+      if (response.status >= 500) return caches.match(request).then((hit) => hit ?? response);
       return response;
     })
     .catch(() => caches.match(request).then((hit) => hit ?? caches.match(OFFLINE)));

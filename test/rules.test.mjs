@@ -31,6 +31,19 @@ describe("site-kit rules: paragraph length", () => {
     expect(run.status).toBe(0);
   });
 
+  it("strips front matter from a file saved as UTF-8 with BOM", () => {
+    const BOM = String.fromCharCode(0xfeff);
+    const run = project({ "content/bom.md": `${BOM}${article("\r\n")}` });
+    expect(run.stderr).toBe("");
+    expect(run.status).toBe(0);
+  });
+
+  it("strips front matter whose closing --- ends the file", () => {
+    const run = project({ "content/only.md": ["---", "title: Compress PNG files", `description: ${"word ".repeat(60).trim()}.`, "---"].join("\n") });
+    expect(run.stderr).toBe("");
+    expect(run.status).toBe(0);
+  });
+
   it("still fails a long paragraph after the lede", () => {
     const run = project({ "content/long.md": article("\r\n").replace("A short second paragraph.", `${"word ".repeat(40).trim()}.`) });
     expect(run.stderr).toContain("Paragraph has 40 words (max 30)");

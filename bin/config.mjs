@@ -26,5 +26,5 @@ export function isAstro(root = process.cwd()) {
 }
 
 export function headerOptions(config, env = process.env) {
-  return { ads: env.PUBLIC_ADS_PROVIDER ?? "none", analytics: Boolean(config.analytics || env.PUBLIC_GA_ID) };
+  return { ads: env.PUBLIC_ADS_PROVIDER ?? "none", analytics: Boolean(config.analytics || env.PUBLIC_GA_ID), agentLinks: config.agentLinks !== false };
 }

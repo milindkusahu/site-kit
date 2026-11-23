@@ -31,7 +31,7 @@ export function securityHeaders(options = {}) {
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()" },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-    { key: "Link", value: '</llms.txt>; rel="describedby"; type="text/markdown", </sitemap.xml>; rel="sitemap"; type="application/xml"' },
+    ...(options.agentLinks === false ? [] : [{ key: "Link", value: '</llms.txt>; rel="describedby"; type="text/markdown", </sitemap.xml>; rel="sitemap"; type="application/xml"' }]),
   ];
 }
 

@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isPreviewHost } from "../checks/audit/fetch.mjs";
 import { checkAgentReadiness } from "../checks/audit/technical.mjs";
 
 const GOOD_ROBOTS = "User-agent: *\nAllow: /\nContent-Signal: search=yes, ai-input=yes, ai-train=yes\n\nSitemap: https://x.example/sitemap.xml\n";
@@ -11,6 +12,7 @@ beforeAll(async () => {
   server = createServer((req, res) => {
     const reply = site[req.url ?? "/"];
     if (!reply) return void res.writeHead(404).end("missing");
+    if (reply.redirect) return void res.writeHead(301, { location: reply.redirect }).end();
     const wantsMarkdown = (req.headers.accept ?? "").includes("text/markdown");
     const type = wantsMarkdown && site.markdown ? "text/markdown; charset=utf-8" : reply.type;
     res.writeHead(200, { "content-type": type, ...(reply.link ? { link: reply.link } : {}) }).end(reply.body);
@@ -60,5 +62,26 @@ describe("launch audit: agent readiness", () => {
     site = { ...ready(), markdown: false };
     expect(await run({ markdown: false })).toEqual([]);
     expect(await run({ markdown: true })).toEqual(["agent/markdown"]);
+  });
+
+  it("fails a Content-Signal line with no value, even when another line follows", async () => {
+    site = { ...ready(), "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\nContent-Signal: \n\nSitemap: https://x.example/sitemap.xml\n" } };
+    expect(await run({ markdown: false })).toEqual(["agent/content-signals"]);
+  });
+
+  it("reads the Link header where the homepage redirects to (www to apex, http to https)", async () => {
+    const live = ready();
+    site = { ...live, "/": { redirect: "/home/" }, "/home/": live["/"] };
+    expect(await run({ markdown: false })).toEqual([]);
+  });
+});
+
+describe("launch audit: which hosts get the Cloudflare zone checks", () => {
+  it.each(["http://localhost:4321", "http://app.localhost", "http://mac.local:4321", "http://127.0.1.1:4321", "http://0.0.0.0:4321", "http://10.0.0.5", "http://172.20.1.2", "http://192.168.1.20:4321", "http://169.254.1.1", "http://[::1]:4321", "http://[fd12::1]", "http://[fe80::1]", "https://my-site.acct.workers.dev", "https://abc.my-site.pages.dev"])("treats %s as a preview", (url) => {
+    expect(isPreviewHost(url)).toBe(true);
+  });
+
+  it.each(["https://example.com", "https://www.example.com", "http://8.8.8.8", "http://172.32.0.1", "https://localhost.example.com"])("treats %s as live", (url) => {
+    expect(isPreviewHost(url)).toBe(false);
   });
 });

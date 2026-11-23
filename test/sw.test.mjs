@@ -44,8 +44,26 @@ describe("service worker", () => {
     const get = worker(() => (status === 0 ? Promise.reject(new TypeError("offline")) : new Response("page", { status })));
     expect(await get("/guide/", "navigate")).toBe(200);
     status = 500;
-    expect(await get("/guide/", "navigate")).toBe(500);
+    await get("/guide/", "navigate");
     status = 0;
     expect(await get("/guide/", "navigate")).toBe(200);
+  });
+
+  it("serves the last good page when the origin returns a server error", async () => {
+    let status = 200;
+    const get = worker(() => new Response("page", { status }));
+    expect(await get("/tool/", "navigate")).toBe(200);
+    status = 503;
+    expect(await get("/tool/", "navigate")).toBe(200);
+  });
+
+  it("passes a server error through for a page it has never cached, and a 404 always", async () => {
+    let status = 503;
+    const get = worker(() => new Response("page", { status }));
+    expect(await get("/new/", "navigate")).toBe(503);
+    status = 200;
+    expect(await get("/gone/", "navigate")).toBe(200);
+    status = 404;
+    expect(await get("/gone/", "navigate")).toBe(404);
   });
 });

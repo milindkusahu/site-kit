@@ -17,10 +17,13 @@ export const SECRET_PATTERNS = [
 const SKIP = /(^|\/)(node_modules|dist|\.next|\.astro|\.wrangler|test-results|playwright-report|docs\/research\/raw)\/|\.(png|jpe?g|webp|avif|gif|ico|woff2?|lock|pdf|zip)$/i;
 const ALLOW_FILE = ".secrets-allow";
 
-function trackedFiles(root) {
-  const git = spawnSync("git", ["ls-files", "-z", "-co", "--exclude-standard"], { cwd: root, encoding: "utf8", windowsHide: true });
+function gitFiles(root, flags) {
+  const git = spawnSync("git", ["ls-files", "-z", ...flags], { cwd: root, encoding: "utf8", windowsHide: true });
   return git.status === 0 ? git.stdout.split("\0").filter(Boolean) : [];
 }
+
+// Tracked plus untracked files that .gitignore doesn't cover: everything that could be committed.
+const trackedFiles = (root) => gitFiles(root, ["-co", "--exclude-standard"]);
 
 export function scanText(text) {
   return SECRET_PATTERNS.filter((p) => p.re.test(text)).map((p) => p.name);
@@ -39,7 +42,8 @@ export function scanRepo(root) {
       for (const name of scanText(line)) if (!allow.some((a) => line.includes(a))) findings.push({ file: rel, line: i + 1, name });
     });
   }
-  const envTracked = trackedFiles(root).filter((f) => /(^|\/)\.env(\.[^/]+)?$/.test(f) && !f.endsWith(".example"));
-  for (const f of envTracked) findings.push({ file: f, line: 0, name: ".env file tracked by git" });
+  const committed = new Set(gitFiles(root, ["-c"]));
+  const envFiles = trackedFiles(root).filter((f) => /(^|\/)\.env(\.[^/]+)?$/.test(f) && !f.endsWith(".example"));
+  for (const f of envFiles) findings.push({ file: f, line: 0, name: committed.has(f) ? ".env file tracked by git" : ".env file not ignored by git" });
   return findings;
 }
