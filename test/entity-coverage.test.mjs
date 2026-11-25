@@ -42,6 +42,17 @@ describe("entity coverage", () => {
     expect(statusOf(html, "Etsy")).toBe("missing");
   });
 
+  it("counts a glossary term with a real definition as explained, but not an empty one", () => {
+    expect(statusOf("<dl><dt>Letterbox</dt><dd>Bars added above and below a wide photo so it fits a taller frame.</dd></dl>", "letterbox")).toBe("explained");
+    expect(statusOf("<dl><dt>Letterbox</dt><dd>Bars.</dd></dl>", "letterbox")).toBe("name-dropped");
+  });
+
+  it("doesn't count an entity that sits inside this entity's own name", () => {
+    const list = [{ name: "1080 x 1080 pixels" }, { name: "pixel" }, { name: "Instagram" }, { name: "square" }];
+    const { main } = parsePage("<main><p>The Instagram square post size is 1080 x 1080 pixels, the size it shows on a phone.</p></main>");
+    expect(entityCoverage(main, list)[0].status).toBe("explained");
+  });
+
   it("counts a sentence with at most two other entities as explained", () => {
     const html = "<p>Etsy crops listing photos in its search results, so Shopify and Amazon sellers who reuse them should pad first.</p>";
     expect(statusOf(html, "Etsy")).toBe("explained");

@@ -59,15 +59,22 @@ export function entityCoverage(main, entities) {
     .flatMap((el) => el.text.split(/(?<=[.!?])\s+|\n+/))
     .map((s) => s.replace(/\s+/g, " ").trim())
     .filter(Boolean);
+  const definitions = clone.querySelectorAll("dt").map((dt) => {
+    const parts = [];
+    for (let next = dt.nextElementSibling; next && next.tagName === "DD"; next = next.nextElementSibling) parts.push(next.text);
+    return { term: dt.text, definition: parts.join(" ") };
+  });
   const all = clone.structuredText;
   const patterns = entities.map((e) => entityPattern(e.name));
   return entities.map((entity, i) => {
     const own = patterns[i];
     if (!own.test(all)) return { entity, status: "missing" };
     if (heads.some((h) => own.test(h))) return { entity, status: "explained" };
+    if (definitions.some((d) => own.test(d.term) && wordCount(d.definition) >= MIN_EXPLAINING_WORDS)) return { entity, status: "explained" };
     const explained = body.some((sentence) => {
       if (!own.test(sentence) || wordCount(sentence) < MIN_EXPLAINING_WORDS) return false;
-      const others = patterns.filter((p, j) => j !== i && p.test(sentence)).length;
+      const rest = sentence.replace(new RegExp(own.source, "giu"), " ");
+      const others = patterns.filter((p, j) => j !== i && p.test(rest)).length;
       return others <= MAX_OTHER_ENTITIES;
     });
     return { entity, status: explained ? "explained" : "name-dropped" };
