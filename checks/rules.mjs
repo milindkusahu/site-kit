@@ -27,6 +27,11 @@ const EM_DASH = "—";
 const hexColor = /(?<![\w&-])#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![\w-])/g;
 const fnColor = /\b(?:rgb|hsl|oklch|oklab|lab|lch)a?\(\s*(?!0\s*,\s*0\s*,\s*0\s*[,/)])/g;
 const tokenUse = /var\(\s*(--color-[a-z0-9-]+)/g;
+const definedSpace = new Set([...tokensText.matchAll(/(--space-[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+const spacingDecl = /(?<![\w-])((?:margin|padding)(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?|gap|row-gap|column-gap)\s*:\s*([^;}"'\n]+)/g;
+const literalLength = /-?(?:\d+\.?\d*|\.\d+)(?:px|rem|em)\b/g;
+const HAIRLINE = new Set(["0px", "0rem", "0em", "1px", "2px"]);
+const spaceUse = /var\(\s*(--space-[a-z0-9-]+)/g;
 const tailwindToken = /\b(?:bg|text|border|ring|outline|fill|stroke|from|to|via|divide|placeholder|decoration|shadow|accent|caret)-((?:bg|surface|surface-2|line|fg|muted|brand|brand-fill|accent-2|on-accent|error|accent|foreground|background|border|primary)(?![\w-]))/g;
 
 const literalStyle = /\b(font-size|font-weight|border-radius|box-shadow)\s*:\s*(?=\S)(?!var\(|inherit|initial|unset|0\s*;|none\s*;|100%)([^;}"'\n]+)/g;
@@ -62,6 +67,16 @@ for (const file of sourceFiles) {
   if (file !== tokensFile && /\.(css|astro)$/.test(r)) {
     for (const m of text.matchAll(literalStyle)) {
       report(file, text, m.index, `Literal ${m[1]}: ${m[2].trim()}. Use a token from ${config.tokensFile} (add one for light and dark if it's missing).`);
+    }
+  }
+
+  if (config.spacingScale && file !== tokensFile && /\.(css|astro)$/.test(r)) {
+    for (const m of text.matchAll(spacingDecl)) {
+      const literal = m[2].replace(/var\([^)]*\)/g, " ").match(literalLength)?.find((v) => !HAIRLINE.has(v.replace(/^-/, "")));
+      if (literal) report(file, text, m.index, `Literal spacing ${m[1]}: ${m[2].trim()}. Use var(--space-N) from ${config.tokensFile}, so every gap sits on one scale.`);
+    }
+    for (const m of text.matchAll(spaceUse)) {
+      if (!definedSpace.has(m[1])) report(file, text, m.index, `${m[1]} isn't on the spacing scale in ${config.tokensFile}.`);
     }
   }
 

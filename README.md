@@ -33,11 +33,16 @@ Each project has a `site-kit.config.json` at its root:
   "contentDirs": ["content", "src/content"],
   "chromeDirs": ["src/components/layout"],
   "headersFile": "public/_headers",
-  "analytics": false
+  "analytics": false,
+  "spacingScale": true
 }
 ```
 
 `headersFile` is for Astro on Cloudflare. Next.js projects leave it out and call `securityHeaders()` from `next.config.ts`.
+
+`spacingScale` (1.6.0+, off by default) makes `site-kit rules` fail any literal `margin`, `padding` or `gap` length in CSS and Astro files. Spacing uses `var(--space-N)` from the tokens file; `0`, `auto`, percentages and 1 or 2 px hairlines are allowed. Each `--space-` token used must be defined in the tokens file.
+
+A `docs/design/references.json` with `"version": 2` adds the craft rules to `site-kit plan`: 6+ references not marked `competitor: true`, 2+ from a curated gallery (`source: "gallery"`), a `craft` note on each for `type`, `spacing` and `icons`, and a `measured` file for live ones. Once design directions are ticked, `docs/design/critique.json` must score each direction 4+ on type, spacing, clutter, icons, hierarchy and originality, with a passing design audit.
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
 

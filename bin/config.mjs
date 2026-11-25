@@ -12,6 +12,7 @@ export const DEFAULTS = {
   maxInlineClasses: 3,
   headersFile: null,
   analytics: false,
+  spacingScale: false,
 };
 
 export function loadConfig(root = process.cwd()) {
