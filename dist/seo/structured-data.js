@@ -25,6 +25,8 @@ export function organizationNode(site) {
         url: absoluteUrl(site.origin, "/"),
         email: site.contactEmail,
         logo: { "@type": "ImageObject", url: absoluteUrl(site.origin, "/icons/icon-512.png"), width: 512, height: 512 },
+        contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: site.contactEmail, availableLanguage: site.defaultLocale },
+        ...(site.country ? { address: { "@type": "PostalAddress", addressCountry: site.country } } : {}),
         ...(site.sameAs.length > 0 ? { sameAs: site.sameAs } : {}),
     };
 }

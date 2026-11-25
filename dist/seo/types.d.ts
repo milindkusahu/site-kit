@@ -18,6 +18,7 @@ export type SiteConfig = {
     readonly sameAs: readonly string[];
     readonly launched: string;
     readonly contentSignal?: string;
+    readonly country?: string;
 };
 export type PageType = "home" | "tool" | "howto" | "comparison" | "explainer" | "hub" | "about" | "contact" | "author" | "legal" | "changelog" | "utility";
 export type SitePage = {

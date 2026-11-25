@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { createSeo } from "../src/seo/create-seo.ts";
 import type { SiteConfig, SitePage } from "../src/seo/types.ts";
+import { organizationNode } from "../src/seo/structured-data.ts";
 import { withTrailingSlash } from "../src/seo/url.ts";
 
 const site: SiteConfig = {
@@ -107,5 +108,16 @@ describe("createSeo", () => {
       expect(withTrailingSlash(once)).toBe(once);
       expect(once.includes("?")).toBe(false);
     }));
+  });
+});
+
+describe("organizationNode", () => {
+  it("has a contact point from the contact email", () => {
+    expect(organizationNode(site)["contactPoint"]).toEqual({ "@type": "ContactPoint", contactType: "customer support", email: "contact@test.example", availableLanguage: "en" });
+  });
+
+  it("adds a country-only address only when the site sets a country", () => {
+    expect(organizationNode(site)["address"]).toBeUndefined();
+    expect(organizationNode({ ...site, country: "IN" })["address"]).toEqual({ "@type": "PostalAddress", addressCountry: "IN" });
   });
 });
