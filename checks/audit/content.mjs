@@ -1,4 +1,4 @@
-import { headings, jsonLd, walkJson } from "./html.mjs";
+import { headings, jsonLd, NOT_CONTENT, walkJson, wordCount } from "./html.mjs";
 
 const STOP = new Set("a an and are can do does for how i in is it my of on or the to what when where which why with you your".split(" "));
 
@@ -39,10 +39,51 @@ function checkMedia(ctx, page, brief) {
   if (data.length < needed) ctx.fail("content/original-data", page.url, `${data.length} [data-original-data] blocks, the brief needs ${needed} (measurements, real-number tables or cited statistics).`);
 }
 
+const MAX_OTHER_ENTITIES = 2;
+const MIN_EXPLAINING_WORDS = 10;
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function entityPattern(name) {
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(name.trim())}(?:e?s)?(?![\\p{L}\\p{N}])`, "iu");
+}
+
+export function entityCoverage(main, entities) {
+  const clone = main.clone();
+  for (const el of clone.querySelectorAll(NOT_CONTENT)) el.remove();
+  const heads = clone.querySelectorAll("h2, h3, h4").map((h) => h.text.replace(/\s+/g, " ").trim());
+  const body = clone
+    .querySelectorAll("p, li, td, th, dd, figcaption, blockquote")
+    .flatMap((el) => el.text.split(/(?<=[.!?])\s+|\n+/))
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const all = clone.structuredText;
+  const patterns = entities.map((e) => entityPattern(e.name));
+  return entities.map((entity, i) => {
+    const own = patterns[i];
+    if (!own.test(all)) return { entity, status: "missing" };
+    if (heads.some((h) => own.test(h))) return { entity, status: "explained" };
+    const explained = body.some((sentence) => {
+      if (!own.test(sentence) || wordCount(sentence) < MIN_EXPLAINING_WORDS) return false;
+      const others = patterns.filter((p, j) => j !== i && p.test(sentence)).length;
+      return others <= MAX_OTHER_ENTITIES;
+    });
+    return { entity, status: explained ? "explained" : "name-dropped" };
+  });
+}
+
 function checkEntities(ctx, page, brief) {
-  const lower = page.copy.text.toLowerCase();
-  for (const e of brief.entities ?? []) {
-    if (!lower.includes(e.name.toLowerCase())) ctx.fail("content/entity", page.url, `Entity not covered: ${e.name}`);
+  for (const { entity, status } of entityCoverage(page.main, brief.entities ?? [])) {
+    if (status === "missing") ctx.fail("content/entity", page.url, `Entity not covered: ${entity.name}`);
+    if (status === "name-dropped") {
+      ctx.fail(
+        "content/entity-depth",
+        page.url,
+        `Entity only name-dropped: ${entity.name}. It appears only in short fragments or in lists with several other entities. Give it a heading, or a sentence of ${MIN_EXPLAINING_WORDS}+ words that says what it is or why it matters here.`,
+      );
+    }
   }
   const subject = (brief.mainEntity ?? "").toLowerCase();
   if (subject) {

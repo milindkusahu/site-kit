@@ -10,7 +10,7 @@ export function meta(root, selector, attr = "content") {
   return root.querySelector(selector)?.getAttribute(attr) ?? null;
 }
 
-const NOT_CONTENT = "nav, aside, footer, header, script, style, noscript, [data-ad-slot], [aria-hidden=true]";
+export const NOT_CONTENT ="nav, aside, footer, header, script, style, noscript, [data-ad-slot], [aria-hidden=true]";
 
 export function mainText(main) {
   const clone = main.clone();
