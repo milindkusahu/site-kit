@@ -117,5 +117,5 @@ export async function checkAgentReadiness(ctx, { markdown = false } = {}) {
   else if ((await follow(new URL(described, res.url).href)).status !== 200) ctx.fail("agent/link-header", home, `The Link header's describedby target ${described} doesn't return 200.`);
   if (!markdown) return;
   const md = await fetch(home, { headers: { Accept: "text/markdown", "Cache-Control": "no-cache", "User-Agent": "workflow-site-audit" } });
-  if (!(md.headers.get("content-type") ?? "").includes("text/markdown")) ctx.fail("agent/markdown", home, "Asking for Accept: text/markdown didn't return markdown. Turn on Markdown for Agents for the zone in Cloudflare (AI Crawl Control; Pro plan or above).");
+  if (!(md.headers.get("content-type") ?? "").includes("text/markdown")) ctx.fail("agent/markdown", home, "Asking for Accept: text/markdown didn't return markdown. Serve it with site-kit's Worker: run `site-kit markdown` after the build and set wrangler's main to node_modules/@milindkusahu/site-kit/dist/agent/worker.js (see the site-kit README, \"Markdown for agents\"). No Cloudflare Pro plan needed.");
 }

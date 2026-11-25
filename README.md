@@ -12,7 +12,8 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | ESLint | `@milindkusahu/site-kit/eslint/shared` | The no-comments, no-barrel and boundaries rules, timer bans, banned UI libraries, complexity limits |
 | Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage}` | Feature steps, plus the above-the-fold and no-ad-near-the-tool tests |
 | Audit | `@milindkusahu/site-kit/audit` | The crawler behind `site-kit audit` |
-| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `headers` |
+| Markdown Worker | `dist/agent/worker.js`, `site-kit markdown` | Serves a Markdown copy of each page to agents that ask for it (see below) |
+| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `headers` |
 
 Run `bunx site-kit` in a project for the full command list.
 
@@ -39,6 +40,35 @@ Each project has a `site-kit.config.json` at its root:
 `headersFile` is for Astro on Cloudflare. Next.js projects leave it out and call `securityHeaders()` from `next.config.ts`.
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
+
+## Markdown for agents
+
+Agents that send `Accept: text/markdown` get each page as Markdown, and browsers still get HTML. Every response from the Worker carries `Vary: Accept`. This replaces Cloudflare's own Markdown for Agents, which needs the Pro plan. It works on any Workers plan.
+
+1. After the build, write a `.md` copy next to every page: `"build": "astro build && site-kit markdown"`. Each copy has front matter (title, description, url) and only the page's `<main>`, with absolute links. The `[data-tool]` element becomes one sentence pointing at the page, and `dist/404.md` gets links to the sitemap and llms.txt. Pages without a `<main>` and the service worker's `/offline/` page are skipped.
+2. Serve the site through the kit's Worker in `wrangler.jsonc`. No Worker file in the project:
+
+   ```jsonc
+   "main": "node_modules/@milindkusahu/site-kit/dist/agent/worker.js",
+   "assets": {
+     "directory": "./dist",
+     "binding": "ASSETS",
+     "run_worker_first": ["/*", "!/_astro/*", "!/images/*", "!/og/*", "!/icons/*", "!/fonts/*"],
+     "html_handling": "auto-trailing-slash",
+     "not_found_handling": "404-page"
+   }
+   ```
+
+   List every folder that holds only static files as a `!/folder/*` pattern. Those requests skip the Worker and stay free.
+3. Test it under `wrangler dev`: add a spec to `verify/` with
+   `import { markdownTests } from "@milindkusahu/site-kit/playwright/markdown";` and
+   `markdownTests({ path: "/a-tool-page/", heading: /^# .+$/m });`
+
+Optional settings go in `site-kit.config.json`: `"markdown": { "dir": "dist", "skip": ["offline"], "toolNote": "This page has a free photo tool that runs in the browser. Open {url} in a browser to use it.", "origin": "https://example.com" }`. The origin comes from the homepage's canonical link when it isn't set.
+
+**Cost.** Static files never count as Worker requests. Page requests that match `run_worker_first` do. Workers Free allows 100,000 Worker requests a day (it resets at midnight UTC). Past that limit, page requests fail with an error instead of falling back to the static file. Workers Paid ($5 a month, 10 million requests included) covers it. Use Workers Paid on any site that could pass about 100,000 page views a day.
+
+`site-kit audit <live-url> --launch` checks that the homepage answers `Accept: text/markdown` with Markdown. Local and preview hosts skip that check, because `astro preview` doesn't run the Worker. The Playwright helper covers it there.
 
 ## Releasing
 

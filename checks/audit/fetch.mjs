@@ -37,7 +37,7 @@ export function makeMapper(base, productionOrigin) {
   };
 }
 
-// Hosts that can't carry the production zone's settings (Markdown for Agents): local, private-network and Cloudflare preview hosts.
+// Hosts where the markdown Worker may not be in front of the pages (astro preview, a dev server, a preview upload): local, private-network and Cloudflare preview hosts. The playwright/markdown helper tests it under wrangler dev.
 export function isPreviewHost(base) {
   const host = new URL(base).hostname.toLowerCase();
   if (host === "localhost" || /\.(localhost|local)$/.test(host) || /\.(workers|pages)\.dev$/.test(host)) return true;

@@ -65,9 +65,20 @@ async function headers() {
 function assets() {
   const script = kitFile("assets/images.mjs");
   if (process.versions["bun"]) return import(script).then(() => 0);
-  const bun = spawnSync("bun", [script, ...rest], { stdio: "inherit", windowsHide: true, shell: process.platform === "win32" });
+  // shell: true on Windows joins the args unquoted, and the path can contain spaces.
+  const win = process.platform === "win32";
+  const bun = spawnSync("bun", [win ? `"${script}"` : script, ...rest], { stdio: "inherit", windowsHide: true, shell: win });
   if (bun.error === undefined) return bun.status ?? 1;
   return spawnSync(process.execPath, [script, ...rest], { stdio: "inherit" }).status ?? 1;
+}
+
+async function markdown() {
+  const { writeMarkdownTwins } = await kitModule("assets/markdown.mjs");
+  const options = loadConfig().markdown ?? {};
+  const dir = rest.find((a) => !a.startsWith("--")) ?? options.dir ?? "dist";
+  const written = writeMarkdownTwins(dir, options);
+  process.stdout.write(`Markdown copies: ${written.length} written next to the HTML pages in ${dir}.\n`);
+  return 0;
 }
 
 const COMMANDS = {
@@ -79,6 +90,7 @@ const COMMANDS = {
   cwv: { run: () => asScript("checks/cwv.mjs").then(() => process.exitCode ?? 0), help: "<base-url> [/path ...]  Lighthouse median of 3, mobile and desktop budgets" },
   ui: { run: () => asScript("checks/ui.mjs").then(() => process.exitCode ?? 0), help: "<url> [actions]  screenshot a page at phone and desktop widths" },
   assets: { run: assets, help: "icons, favicon, OG card, public/sw.js and the headers file from site-kit.config.json" },
+  markdown: { run: markdown, help: "[dir]  after the build, write a markdown copy of every page for site-kit's Worker to serve to agents" },
   headers: { run: headers, help: "[--file]  print the security headers this project ships" },
 };
 
