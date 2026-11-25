@@ -19,6 +19,7 @@ export type SiteConfig = {
   readonly sameAs: readonly string[];
   readonly launched: string;
   readonly contentSignal?: string;
+  readonly country?: string;
 };
 
 export type PageType =
