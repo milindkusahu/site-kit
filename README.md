@@ -10,6 +10,7 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | SEO pieces | `@milindkusahu/site-kit/seo/{url,ads,share,types,…}` | Smaller helpers when you only need one |
 | Security headers | `@milindkusahu/site-kit/headers` | CSP, HSTS, nosniff, referrer, permissions and opener policy. Ads and analytics open only what they need |
 | ESLint | `@milindkusahu/site-kit/eslint/shared` | The no-comments, no-barrel and boundaries rules, timer bans, banned UI libraries, complexity limits |
+| Image input | `@milindkusahu/site-kit/image/{open,heic,header,formats,problems,zip,download,batch}` | Open a picked file upright, HEIC fallback, refuse huge files from the header, reader-friendly errors, ZIP writer, download, one-at-a-time batch runner (see below) |
 | Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage}` | Feature steps, plus the above-the-fold and no-ad-near-the-tool tests |
 | Audit | `@milindkusahu/site-kit/audit` | The crawler behind `site-kit audit` |
 | Markdown Worker | `dist/agent/worker.js`, `site-kit markdown` | Serves a Markdown copy of each page to agents that ask for it (see below) |
@@ -45,6 +46,27 @@ Each project has a `site-kit.config.json` at its root:
 A `docs/design/references.json` with `"version": 2` adds the craft rules to `site-kit plan`: 6+ references not marked `competitor: true`, 2+ from a curated gallery (`source: "gallery"`), a `craft` note on each for `type`, `spacing` and `icons`, and a `measured` file for live ones. Once design directions are ticked, `docs/design/critique.json` must score each direction 4+ on type, spacing, clutter, icons, hierarchy and originality, with a passing design audit.
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
+
+### Image input (1.8.0+)
+
+Browser-only, one subpath per piece, so a page ships only what it imports.
+
+```ts
+import { openImage } from "@milindkusahu/site-kit/image/open";
+import { problemCopy } from "@milindkusahu/site-kit/image/problems";
+import { createHeicDecoder } from "@milindkusahu/site-kit/image/heic"; // only if the site opens HEIC
+
+const heic = createHeicDecoder();
+const result = await openImage(file, { maxPixels: 100_000_000, heic });
+if (result.kind === "opened") use(result.bitmap); // upright, EXIF orientation applied
+else show(problemCopy(result, { accepted: "JPG, PNG, WebP or HEIC" })); // { title, line, short }
+```
+
+- `open`: `openImage` reads the first megabyte, refuses non-images and anything over `maxPixels` from the header (JPEG, PNG, WebP, GIF, BMP, HEIC and AVIF `ispe`) before decoding, decodes with `imageOrientation: "from-image"`, falls back to the HEIC decoder, and returns `{ kind: "opened", bitmap, size, format, orientation, reducedFrom }` or an `OpenProblem` (`unreadable`, `not-image`, `unsupported`, `too-large`, `damaged`, `decoder-not-loaded`, `out-of-memory`). `reducedFrom` is set when Android Chrome decoded a big JPEG smaller than it is. `decodeAgain` re-decodes for the full-size render; `holdFiles` copies picked files on Android, where their handles go stale.
+- `heic`: libheif, loaded only when a HEIC file needs it. Add `"libheif-js": "1.23.5"` to the site's dependencies (an optional peer, LGPL-3.0, about 1.9 MB) and `"wasm": true` to `site-kit.config.json`, which adds `'wasm-unsafe-eval'` to the CSP. It retries once on a fresh instance and drops a heap over 256 MB.
+- `zip`: store-only writer (`zipBlob`, `zipStore`, `zipFrame`), streamed CRC-32, `uniqueNames` (`a-2.jpg`, or `"paren"` for `a (2).jpg`), `archiveGroups` and `archiveFileName` for runs over 2 GB. It throws rather than write past ZIP's 32-bit limits.
+- `download`: `downloadBlob(blob, name)` keeps the object URL until the next download or `pagehide`; `cleanStem` makes typed names safe.
+- `batch`: `createBatch({ process })` runs files one at a time with `add`, `start`, `stop`, `retry`, `remove`, `clear`, `subscribe`, `snapshot` and `idle`. Stop aborts the running file's signal and moves on without waiting for it. `batchProgress` gives the counts, percent and a time-left estimate from the run's own timings.
 
 ### Changelog grouping (1.7.0+)
 

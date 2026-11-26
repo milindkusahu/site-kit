@@ -1,8 +1,8 @@
 const ANALYTICS = ["https://www.googletagmanager.com", "https://*.google-analytics.com", "https://*.analytics.google.com"];
 
-function csp({ dev = false, ads = "none", analytics = false } = {}) {
+function csp({ dev = false, ads = "none", analytics = false, wasm = false } = {}) {
   const adsOn = ads !== "none" && ads !== "placeholder";
-  const scripts = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : []), ...(analytics ? ANALYTICS : []), ...(adsOn ? ["https:"] : [])];
+  const scripts = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : []), ...(wasm && !dev ? ["'wasm-unsafe-eval'"] : []), ...(analytics ? ANALYTICS : []), ...(adsOn ? ["https:"] : [])];
   const connect = ["'self'", ...(analytics ? ANALYTICS : []), ...(adsOn ? ["https:"] : []), ...(dev ? ["ws:"] : [])];
   return [
     "default-src 'self'",

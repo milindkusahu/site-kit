@@ -97,6 +97,14 @@ describe("security headers", () => {
     expect(securityHeaders({ dev: true }).find((h) => h.key === "Content-Security-Policy")?.value).toContain("unsafe-eval");
   });
 
+  it("allows WebAssembly only when a site asks for it, never general eval", () => {
+    const wasm = securityHeaders({ wasm: true }).find((h) => h.key === "Content-Security-Policy")?.value ?? "";
+    expect(wasm).toContain("'wasm-unsafe-eval'");
+    expect(wasm).not.toMatch(/'unsafe-eval'/);
+    expect(securityHeaders().find((h) => h.key === "Content-Security-Policy")?.value).not.toContain("wasm");
+    expect(headerProblems(asHeaders(securityHeaders({ wasm: true })))).toEqual([]);
+  });
+
   it("catches missing and weak headers", () => {
     const weak = new Headers({ "content-security-policy": "script-src *", "cross-origin-embedder-policy": "require-corp" });
     const problems = headerProblems(weak).join("\n");
