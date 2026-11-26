@@ -29,7 +29,9 @@ export function adsTxtBody(config) {
 export function parseTrackingConfig(env) {
     return {
         gaId: env["PUBLIC_GA_ID"] ?? "",
+        gtmId: env["PUBLIC_GTM_ID"] ?? "",
         googleVerification: env["PUBLIC_GOOGLE_SITE_VERIFICATION"] ?? "",
         bingVerification: env["PUBLIC_BING_SITE_VERIFICATION"] ?? "",
+        yandexVerification: env["PUBLIC_YANDEX_VERIFICATION"] ?? "",
     };
 }

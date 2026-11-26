@@ -45,14 +45,18 @@ export function adsTxtBody(config: AdsConfig): string {
 
 export type TrackingConfig = {
   readonly gaId: string;
+  readonly gtmId: string;
   readonly googleVerification: string;
   readonly bingVerification: string;
+  readonly yandexVerification: string;
 };
 
 export function parseTrackingConfig(env: Readonly<Record<string, string | undefined>>): TrackingConfig {
   return {
     gaId: env["PUBLIC_GA_ID"] ?? "",
+    gtmId: env["PUBLIC_GTM_ID"] ?? "",
     googleVerification: env["PUBLIC_GOOGLE_SITE_VERIFICATION"] ?? "",
     bingVerification: env["PUBLIC_BING_SITE_VERIFICATION"] ?? "",
+    yandexVerification: env["PUBLIC_YANDEX_VERIFICATION"] ?? "",
   };
 }

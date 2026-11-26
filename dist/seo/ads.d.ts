@@ -15,7 +15,9 @@ export declare function adsEnabled(config: AdsConfig): boolean;
 export declare function adsTxtBody(config: AdsConfig): string;
 export type TrackingConfig = {
     readonly gaId: string;
+    readonly gtmId: string;
     readonly googleVerification: string;
     readonly bingVerification: string;
+    readonly yandexVerification: string;
 };
 export declare function parseTrackingConfig(env: Readonly<Record<string, string | undefined>>): TrackingConfig;

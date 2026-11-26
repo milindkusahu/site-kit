@@ -46,6 +46,22 @@ A `docs/design/references.json` with `"version": 2` adds the craft rules to `sit
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
 
+### Analytics and verification tags (1.7.0+)
+
+```astro
+---
+import { parseTrackingConfig } from "@milindkusahu/site-kit/seo/ads";
+import { analyticsSnippet, verificationMeta } from "@milindkusahu/site-kit/seo/analytics";
+const tracking = parseTrackingConfig(import.meta.env);
+const analytics = analyticsSnippet(tracking);
+const verification = verificationMeta({ google: tracking.googleVerification, bing: tracking.bingVerification, yandex: tracking.yandexVerification });
+---
+{verification.map((m) => <meta name={m.name} content={m.content} />)}
+{analytics && <script is:inline set:html={analytics} />}
+```
+
+`PUBLIC_GTM_ID` wins over `PUBLIC_GA_ID`; with neither the snippet is empty. The snippet sets Consent Mode v2 to denied in the EEA, the UK and Switzerland before anything else runs, and loads the Google script only after the page `load` event. A malformed ID throws at build time rather than shipping. Set `"analytics": true` in `site-kit.config.json` (or either env variable) so the CSP allows Google's hosts.
+
 ## Markdown for agents
 
 Agents that send `Accept: text/markdown` get each page as Markdown, and browsers still get HTML. Every response from the Worker carries `Vary: Accept`. This replaces Cloudflare's own Markdown for Agents, which needs the Pro plan. It works on any Workers plan.
