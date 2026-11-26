@@ -13,7 +13,7 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage}` | Feature steps, plus the above-the-fold and no-ad-near-the-tool tests |
 | Audit | `@milindkusahu/site-kit/audit` | The crawler behind `site-kit audit` |
 | Markdown Worker | `dist/agent/worker.js`, `site-kit markdown` | Serves a Markdown copy of each page to agents that ask for it (see below) |
-| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `headers` |
+| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `redirects`, `headers` |
 
 Run `bunx site-kit` in a project for the full command list.
 
@@ -45,6 +45,10 @@ Each project has a `site-kit.config.json` at its root:
 A `docs/design/references.json` with `"version": 2` adds the craft rules to `site-kit plan`: 6+ references not marked `competitor: true`, 2+ from a curated gallery (`source: "gallery"`), a `craft` note on each for `type`, `spacing` and `icons`, and a `measured` file for live ones. Once design directions are ticked, `docs/design/critique.json` must score each direction 4+ on type, spacing, clutter, icons, hierarchy and originality, with a passing design audit.
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
+
+### Trailing-slash redirects (1.7.0+)
+
+End an Astro build with `astro build && site-kit redirects && site-kit markdown`. `site-kit redirects [dir]` (default `dist`) finds every built page (`<path>/index.html`) and writes `/<path> /<path>/ 301` plus `/index.html / 301` into `<dir>/_redirects`, so Cloudflare's `auto-trailing-slash` never answers with a 307. Rules from `public/_redirects` stay first and win; a source they already redirect isn't doubled. Running it twice gives the same file. It fails past Cloudflare's 2,000 static rules.
 
 ### Analytics and verification tags (1.7.0+)
 

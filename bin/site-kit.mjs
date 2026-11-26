@@ -81,6 +81,15 @@ async function markdown() {
   return 0;
 }
 
+async function redirects() {
+  const { writeRedirects } = await kitModule("assets/redirects.mjs");
+  const dir = rest.find((a) => !a.startsWith("--")) ?? loadConfig().redirects?.dir ?? "dist";
+  const { file, generated, kept } = writeRedirects(dir);
+  process.stdout.write(`Redirects: ${generated.length} trailing-slash rule(s) written to ${file}${kept ? `, after ${kept} of the project's own` : ""}.
+`);
+  return 0;
+}
+
 const COMMANDS = {
   rules: { run: () => asScript("checks/rules.mjs").then(() => process.exitCode ?? 0), help: "project rules: em dashes, colour and type tokens, banned classes, chrome headings, paragraph length" },
   plan: { run: plan, help: "kickoff files: research, silo, briefs, design references and decisions" },
@@ -91,12 +100,13 @@ const COMMANDS = {
   ui: { run: () => asScript("checks/ui.mjs").then(() => process.exitCode ?? 0), help: "<url> [actions]  screenshot a page at phone and desktop widths" },
   assets: { run: assets, help: "icons, favicon, OG card, public/sw.js and the headers file from site-kit.config.json" },
   markdown: { run: markdown, help: "[dir]  after the build, write a markdown copy of every page for site-kit's Worker to serve to agents" },
+  redirects: { run: redirects, help: "[dir]  after the build, 301 each page without its trailing slash (and /index.html) in <dir>/_redirects" },
   headers: { run: headers, help: "[--file]  print the security headers this project ships" },
 };
 
 function usage() {
   const version = JSON.parse(readFileSync(kitFile("package.json"), "utf8")).version;
-  const lines = Object.entries(COMMANDS).map(([name, c]) => `  ${name.padEnd(8)} ${c.help}`);
+  const lines = Object.entries(COMMANDS).map(([name, c]) => `  ${name.padEnd(10)} ${c.help}`);
   process.stdout.write(`site-kit ${version}\n\nUsage: site-kit <command> [args]\n\n${lines.join("\n")}\n`);
 }
 
