@@ -46,6 +46,10 @@ A `docs/design/references.json` with `"version": 2` adds the craft rules to `sit
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
 
+### Changelog grouping (1.7.0+)
+
+`groupByMonth(CHANGELOG)` from `@milindkusahu/site-kit/seo/changelog` gives months newest first (`id` like `2026-11`, `month`, `year`, `entries`), and `groupByYear(months)` nests them under years. Entries only need a `date` in `YYYY-MM-DD`; any other date throws at build time. The month name locale defaults to `en-GB`.
+
 ### Trailing-slash redirects (1.7.0+)
 
 End an Astro build with `astro build && site-kit redirects && site-kit markdown`. `site-kit redirects [dir]` (default `dist`) finds every built page (`<path>/index.html`) and writes `/<path> /<path>/ 301` plus `/index.html / 301` into `<dir>/_redirects`, so Cloudflare's `auto-trailing-slash` never answers with a 307. Rules from `public/_redirects` stay first and win; a source they already redirect isn't doubled. Running it twice gives the same file. It fails past Cloudflare's 2,000 static rules.
