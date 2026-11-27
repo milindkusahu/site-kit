@@ -39,6 +39,8 @@ Each project has a `site-kit.config.json` at its root:
 }
 ```
 
+Paragraph limits (1.12.0+): `maxParagraphWords` (default 30), `maxLedeWords` (55) and `maxAnswerWords` (60) apply to Markdown in `contentDirs` (`site-kit rules`) and to every indexable page `site-kit audit` crawls. In the audit, the first paragraph of the main content and any `p.lede` are ledes, and paragraphs inside `<details>` or an element with `data-answer` (FAQ and featured-snippet answers) are answers. The first paragraph on a `home` or `tool` page is the hero tagline, which stays at 25 words. Before 1.12.0 the audit ignored the config and used 30 for everything after the first paragraph.
+
 `headersFile` is for Astro on Cloudflare. Next.js projects leave it out and call `securityHeaders()` from `next.config.ts`.
 
 `spacingScale` (1.6.0+, off by default) makes `site-kit rules` fail any literal `margin`, `padding` or `gap` length in CSS and Astro files, the tokens file included (1.11.0+: before that a site whose styles all lived in the tokens file passed unchecked; defining `--space-*` and other custom properties there is fine). Spacing uses `var(--space-N)` from the tokens file; `0`, `auto`, percentages and 1 or 2 px hairlines are allowed. Each `--space-` token used must be defined in the tokens file.

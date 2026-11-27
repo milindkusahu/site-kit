@@ -9,6 +9,7 @@ export const DEFAULTS = {
   chromeDirs: [],
   maxLedeWords: 55,
   maxParagraphWords: 30,
+  maxAnswerWords: 60,
   maxInlineClasses: 3,
   headersFile: null,
   analytics: false,
@@ -19,6 +20,14 @@ export function loadConfig(root = process.cwd()) {
   const file = path.join(root, "site-kit.config.json");
   if (!existsSync(file)) throw new Error(`site-kit.config.json not found in ${root}. Every project needs one; see the site-kit README.`);
   return { ...DEFAULTS, ...JSON.parse(readFileSync(file, "utf8")) };
+}
+
+export function paragraphLimits(config) {
+  return { paragraph: config.maxParagraphWords, lede: config.maxLedeWords, answer: config.maxAnswerWords };
+}
+
+export function auditConfig(root) {
+  return existsSync(path.join(root, "site-kit.config.json")) ? loadConfig(root) : DEFAULTS;
 }
 
 export function isAstro(root = process.cwd()) {

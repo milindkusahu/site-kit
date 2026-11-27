@@ -26,10 +26,14 @@ export function headings(main) {
   return main.querySelectorAll("h1, h2, h3, h4, h5, h6").map((h) => ({ level: Number(h.tagName.slice(1)), text: h.text.trim(), el: h }));
 }
 
-export function paragraphs(main) {
+export function paragraphElements(main) {
   const clone = main.clone();
   for (const el of clone.querySelectorAll(NOT_CONTENT)) el.remove();
-  return clone.querySelectorAll("p").map((p) => p.text.replace(/\s+/g, " ").trim()).filter(Boolean);
+  return clone.querySelectorAll("p").map((el) => ({ el, text: el.text.replace(/\s+/g, " ").trim() })).filter((p) => p.text);
+}
+
+export function paragraphs(main) {
+  return paragraphElements(main).map((p) => p.text);
 }
 
 export function jsonLd(root) {

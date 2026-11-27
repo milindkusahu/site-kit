@@ -1,4 +1,5 @@
-import { headings, mainText, meta, paragraphs, wordCount } from "./html.mjs";
+import { DEFAULTS, paragraphLimits } from "../../bin/config.mjs";
+import { headings, mainText, meta, paragraphElements, paragraphs, wordCount } from "./html.mjs";
 
 export const STOCK_PHRASES = [
   "in today's digital world",
@@ -94,13 +95,23 @@ export function checkCopy(ctx, page) {
   return { text, words: wordCount(text), paragraphs: paragraphs(page.main) };
 }
 
-export function checkParagraphs(ctx, page, type) {
-  const ps = page.copy.paragraphs;
+const TOOL_HERO_WORDS = 25;
+const KIND_LABEL = { hero: "Hero tagline", lede: "Lede", answer: "Answer", paragraph: "Paragraph" };
+
+function paragraphKind(el, i, isTool) {
+  if (i === 0 && isTool) return "hero";
+  if (i === 0 || el.classList.contains("lede")) return "lede";
+  if (el.closest("details, [data-answer]")) return "answer";
+  return "paragraph";
+}
+
+export function checkParagraphs(ctx, page, type, limits = paragraphLimits(DEFAULTS)) {
   const isTool = type === "home" || type === "tool";
-  ps.forEach((p, i) => {
-    const words = p.split(/\s+/).length;
-    const limit = i === 0 ? (isTool ? 25 : 55) : 30;
-    if (words > limit) ctx.fail("content/paragraph-length", page.url, `${i === 0 ? (isTool ? "Hero tagline" : "Lede") : "Paragraph"} has ${words} words (max ${limit}): "${p.slice(0, 60)}..."`);
+  paragraphElements(page.main).forEach(({ el, text }, i) => {
+    const words = text.split(/\s+/).length;
+    const kind = paragraphKind(el, i, isTool);
+    const limit = kind === "hero" ? TOOL_HERO_WORDS : limits[kind];
+    if (words > limit) ctx.fail("content/paragraph-length", page.url, `${KIND_LABEL[kind]} has ${words} words (max ${limit}): "${text.slice(0, 60)}..."`);
   });
 }
 

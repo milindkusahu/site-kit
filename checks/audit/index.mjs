@@ -4,6 +4,7 @@ import { checkBrief, checkExternalLinks, checkInternalLinkNearTop } from "./cont
 import { fetchRaw, follow, isPreviewHost, makeMapper } from "./fetch.mjs";
 import { meta, parsePage } from "./html.mjs";
 import { checkAds, checkCopy, checkDuplicates, checkHeadings, checkImages, checkLinks, checkParagraphs, checkPlaceholders, checkTitleAndDescription } from "./onpage.mjs";
+import { auditConfig, paragraphLimits } from "../../bin/config.mjs";
 import { headerProblems } from "../../headers/security.mjs";
 import { checkSimilarity } from "./similarity.mjs";
 import { checkAgentReadiness, checkHead, checkHreflang, checkManifest, checkQueryCanonical, checkRobots, checkSoft404, checkStructuredData, loadSitemap } from "./technical.mjs";
@@ -93,7 +94,7 @@ async function checkPage(ctx, page, plan) {
   page.type = type;
   page.isContent = CONTENT_TYPES.has(type) && !isNoindex(page);
   page.primaryQuery = brief?.primaryQuery ?? "";
-  if (!isNoindex(page)) checkParagraphs(ctx, page, type);
+  if (!isNoindex(page)) checkParagraphs(ctx, page, type, ctx.paragraphLimits);
   if (page.root.querySelector("body")?.getAttribute("data-ads") !== "off") checkAds(ctx, page);
   if (ctx.launch) checkPlaceholders(ctx, page, page.html);
   if (ctx.sitemapSet.has(page.url)) await checkQueryCanonical(ctx, page, canonical);
@@ -140,7 +141,9 @@ async function checkLaunchFiles(ctx, pages) {
 export async function runAudit(base, options = {}) {
   const problems = [];
   const ctx = { base, launch: options.launch === true, fail: (rule, url, message) => problems.push({ rule, url, message }) };
-  const plan = loadPlan(options.root ?? process.cwd());
+  const root = options.root ?? process.cwd();
+  const plan = loadPlan(root);
+  ctx.paragraphLimits = paragraphLimits(auditConfig(root));
   const sitemap = await loadSitemap(ctx);
   const productionOrigin = sitemap[0] ? new URL(sitemap[0]).origin : null;
   ctx.mapper = makeMapper(base, productionOrigin);
