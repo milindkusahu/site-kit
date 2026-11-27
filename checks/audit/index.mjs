@@ -4,7 +4,7 @@ import { checkBrief, checkExternalLinks, checkInternalLinkNearTop } from "./cont
 import { fetchRaw, follow, isPreviewHost, makeMapper } from "./fetch.mjs";
 import { meta, parsePage } from "./html.mjs";
 import { checkAds, checkCopy, checkDuplicates, checkHeadings, checkImages, checkLinks, checkParagraphs, checkPlaceholders, checkTitleAndDescription } from "./onpage.mjs";
-import { auditConfig, paragraphLimits } from "../../bin/config.mjs";
+import { auditConfig, lengthLimits, paragraphLimits } from "../../bin/config.mjs";
 import { headerProblems } from "../../headers/security.mjs";
 import { checkSimilarity } from "./similarity.mjs";
 import { checkAgentReadiness, checkHead, checkHreflang, checkManifest, checkQueryCanonical, checkRobots, checkSoft404, checkStructuredData, loadSitemap } from "./technical.mjs";
@@ -86,7 +86,7 @@ async function checkPage(ctx, page, plan) {
   const brief = plan.briefs.get(ctx.mapper.pathOf(page.url));
   const canonical = checkHead(ctx, page);
   checkStructuredData(ctx, page);
-  Object.assign(page, checkTitleAndDescription(ctx, page));
+  Object.assign(page, checkTitleAndDescription(ctx, page, ctx.lengthLimits));
   page.h1 = checkHeadings(ctx, page);
   checkImages(ctx, page);
   checkLinks(ctx, page);
@@ -143,7 +143,9 @@ export async function runAudit(base, options = {}) {
   const ctx = { base, launch: options.launch === true, fail: (rule, url, message) => problems.push({ rule, url, message }) };
   const root = options.root ?? process.cwd();
   const plan = loadPlan(root);
-  ctx.paragraphLimits = paragraphLimits(auditConfig(root));
+  const config = auditConfig(root);
+  ctx.paragraphLimits = paragraphLimits(config);
+  ctx.lengthLimits = lengthLimits(config);
   const sitemap = await loadSitemap(ctx);
   const productionOrigin = sitemap[0] ? new URL(sitemap[0]).origin : null;
   ctx.mapper = makeMapper(base, productionOrigin);

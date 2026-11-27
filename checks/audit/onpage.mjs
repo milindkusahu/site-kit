@@ -1,4 +1,4 @@
-import { DEFAULTS, paragraphLimits } from "../../bin/config.mjs";
+import { DEFAULTS, lengthLimits, paragraphLimits } from "../../bin/config.mjs";
 import { headings, mainText, meta, paragraphElements, paragraphs, wordCount } from "./html.mjs";
 
 export const STOCK_PHRASES = [
@@ -33,11 +33,12 @@ export const STOCK_PHRASES = [
   "without further ado",
 ];
 
-export function checkTitleAndDescription(ctx, page) {
+export function checkTitleAndDescription(ctx, page, limits = lengthLimits(DEFAULTS)) {
   const title = page.root.querySelector("title")?.text.trim() ?? "";
   const description = meta(page.root, 'meta[name="description"]') ?? "";
-  if (title.length < 15 || title.length > 55) ctx.fail("onpage/title", page.url, `Title is ${title.length} characters (15 to 55): "${title}"`);
-  if (description.length < 70 || description.length > 150) ctx.fail("onpage/description", page.url, `Description is ${description.length} characters (70 to 150).`);
+  const { title: t, description: d } = limits;
+  if (title.length < t.min || title.length > t.max) ctx.fail("onpage/title", page.url, `Title is ${title.length} characters (${t.min} to ${t.max}): "${title}"`);
+  if (description.length < d.min || description.length > d.max) ctx.fail("onpage/description", page.url, `Description is ${description.length} characters (${d.min} to ${d.max}).`);
   return { title, description };
 }
 

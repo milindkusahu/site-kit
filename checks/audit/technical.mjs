@@ -15,13 +15,30 @@ export async function checkRobots(ctx) {
   return undefined;
 }
 
+const LOC = /<loc>\s*([^<\s]+)\s*<\/loc>/g;
+
+function locsOf(xml) {
+  return [...xml.matchAll(LOC)].map((m) => m[1]);
+}
+
+async function loadChild(ctx, loc) {
+  const { pathname, search } = new URL(loc);
+  const res = await fetchRaw(new URL(pathname + search, ctx.base).href);
+  if (res.status === 200) return locsOf(res.body);
+  ctx.fail("tech/sitemap", loc, `Child sitemap ${loc} returned ${res.status}.`);
+  return [];
+}
+
 export async function loadSitemap(ctx) {
   const res = await fetchRaw(new URL("/sitemap.xml", ctx.base).href);
   if (res.status !== 200) {
     ctx.fail("tech/sitemap", "/sitemap.xml", `sitemap.xml returned ${res.status}.`);
     return [];
   }
-  return [...res.body.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => m[1]);
+  if (!/<sitemapindex[\s>]/.test(res.body)) return locsOf(res.body);
+  const children = [];
+  for (const loc of locsOf(res.body)) children.push(...(await loadChild(ctx, loc)));
+  return [...new Set(children)];
 }
 
 export function checkHead(ctx, page) {

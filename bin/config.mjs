@@ -10,6 +10,10 @@ export const DEFAULTS = {
   maxLedeWords: 55,
   maxParagraphWords: 30,
   maxAnswerWords: 60,
+  minTitleChars: 15,
+  maxTitleChars: 55,
+  minDescriptionChars: 70,
+  maxDescriptionChars: 150,
   maxInlineClasses: 3,
   headersFile: null,
   analytics: false,
@@ -24,6 +28,13 @@ export function loadConfig(root = process.cwd()) {
 
 export function paragraphLimits(config) {
   return { paragraph: config.maxParagraphWords, lede: config.maxLedeWords, answer: config.maxAnswerWords };
+}
+
+export function lengthLimits(config) {
+  return {
+    title: { min: config.minTitleChars, max: config.maxTitleChars },
+    description: { min: config.minDescriptionChars, max: config.maxDescriptionChars },
+  };
 }
 
 export function auditConfig(root) {
