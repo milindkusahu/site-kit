@@ -9,11 +9,11 @@ import { checkDesignDecisions, checkReferences } from "../checks/plan/design.mjs
 const cli = fileURLToPath(new URL("../bin/site-kit.mjs", import.meta.url));
 const TOKENS = ":root { --color-fg: currentColor; --space-2: 8px; --space-4: 16px; }\n";
 
-function rules(config, css) {
+function rules(config, css, tokens = TOKENS) {
   const dir = mkdtempSync(path.join(os.tmpdir(), "spacing-"));
   mkdirSync(path.join(dir, "src", "styles"), { recursive: true });
   writeFileSync(path.join(dir, "site-kit.config.json"), JSON.stringify(config));
-  writeFileSync(path.join(dir, "src", "styles", "tokens.css"), TOKENS);
+  writeFileSync(path.join(dir, "src", "styles", "tokens.css"), tokens);
   writeFileSync(path.join(dir, "src", "card.css"), css);
   return spawnSync(process.execPath, [cli, "rules"], { cwd: dir, encoding: "utf8" });
 }
@@ -42,6 +42,21 @@ describe("site-kit rules: spacing scale", () => {
     const run = rules({ spacingScale: true }, ".a { padding: var(--space-3); }");
     expect(run.status).toBe(1);
     expect(run.stderr).toContain("--space-3 isn't on the spacing scale");
+  });
+
+  it("checks the tokens file outside its :root block", () => {
+    const tokens = `${TOKENS}.wrap { padding: 0 24px; }\n.b { gap: var(--space-4); }\n`;
+    const run = rules({ spacingScale: true, tokensFile: "src/styles/tokens.css" }, ".a { gap: 0; }", tokens);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain("tokens.css:2");
+    expect(run.stderr).toContain("Literal spacing padding: 0 24px");
+  });
+
+  it("lets the tokens file define spacing tokens", () => {
+    const tokens = ":root { --space-2: 8px; --space-4: 16px; --pad: 28px; }\nbody { margin: 0; padding: var(--space-2); }\n";
+    const run = rules({ spacingScale: true, tokensFile: "src/styles/tokens.css" }, ".a { gap: var(--space-2); }", tokens);
+    expect(run.stderr).toBe("");
+    expect(run.status).toBe(0);
   });
 
   it("doesn't read other properties as spacing", () => {

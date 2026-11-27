@@ -70,7 +70,7 @@ for (const file of sourceFiles) {
     }
   }
 
-  if (config.spacingScale && file !== tokensFile && /\.(css|astro)$/.test(r)) {
+  if (config.spacingScale && /\.(css|astro)$/.test(r)) {
     for (const m of text.matchAll(spacingDecl)) {
       const literal = m[2].replace(/var\([^)]*\)/g, " ").match(literalLength)?.find((v) => !HAIRLINE.has(v.replace(/^-/, "")));
       if (literal) report(file, text, m.index, `Literal spacing ${m[1]}: ${m[2].trim()}. Use var(--space-N) from ${config.tokensFile}, so every gap sits on one scale.`);
