@@ -83,7 +83,7 @@ End an Astro build with `astro build && site-kit redirects && site-kit markdown`
 import { parseTrackingConfig } from "@milindkusahu/site-kit/seo/ads";
 import { analyticsSnippet, verificationMeta } from "@milindkusahu/site-kit/seo/analytics";
 const tracking = parseTrackingConfig(import.meta.env);
-const analytics = analyticsSnippet(tracking);
+const analytics = analyticsSnippet(tracking, { redactParams: ["t"] }); // optional, 1.10.0+
 const verification = verificationMeta({ google: tracking.googleVerification, bing: tracking.bingVerification, yandex: tracking.yandexVerification });
 ---
 {verification.map((m) => <meta name={m.name} content={m.content} />)}
@@ -91,6 +91,8 @@ const verification = verificationMeta({ google: tracking.googleVerification, bin
 ```
 
 `PUBLIC_GTM_ID` wins over `PUBLIC_GA_ID`; with neither the snippet is empty. The snippet sets Consent Mode v2 to denied in the EEA, the UK and Switzerland before anything else runs, and loads the Google script only after the page `load` event. A malformed ID throws at build time rather than shipping. Set `"analytics": true` in `site-kit.config.json` (or either env variable) so the CSP allows Google's hosts.
+
+`redactParams` (1.10.0+, GA4 only) removes the named query parameters, and the hash, from the `page_location` and same-site `page_referrer` that GA4 records for every hit of the page. Use it for parameters that carry what a visitor typed, such as a share link's `?t=`: without it, GA4 sends the full URL, so the text reaches Google on every page_view and event, and on the next page as the referrer. Other parameters (`utm_*` included) are kept. With a Tag Manager ID it throws, because the container reads the URL itself; redact there instead.
 
 ## Markdown for agents
 

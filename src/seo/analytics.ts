@@ -32,10 +32,35 @@ function loadAfterPageLoad(src: string): string {
   return `(function(){function s(){var e=document.createElement("script");e.async=true;e.src=${literal(src)};document.head.appendChild(e)}if(document.readyState==="complete")s();else addEventListener("load",s,{once:true})})();`;
 }
 
-export function gaSnippet(gaId: string): string {
+export type SnippetOptions = {
+  /**
+   * Query parameters removed from the page_location GA4 records (and from every event of the page), for parameters
+   * that carry what a visitor typed, such as a share link's `?t=`. GA4 only: a Tag Manager container reads the URL
+   * itself, so analyticsSnippet refuses the option with a GTM ID rather than promise a redaction it can't make.
+   */
+  readonly redactParams?: readonly string[];
+};
+
+const PARAM = /^[A-Za-z0-9_.-]{1,40}$/;
+
+// An inline function for the browser: a URL with the named parameters and the hash removed. A referrer from
+// another site is left alone (its parameters aren't ours to know); an empty referrer stays empty.
+function redactor(params: readonly string[]): string {
+  for (const p of params) if (!PARAM.test(p)) throw new Error(`redactParams entry "${p}" is not valid (expected ${PARAM.source}).`);
+  return `function(h){if(!h)return h;var u=new URL(h);if(u.origin!==location.origin)return h;${literal(params)}.forEach(function(p){u.searchParams.delete(p)});u.hash="";return u.href}`;
+}
+
+// The page's own URL and a same-site referrer both carry the parameters (a visitor on /?t=… who clicks a link).
+function redactedConfig(params: readonly string[]): string {
+  return `,(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)})`;
+}
+
+export function gaSnippet(gaId: string, options: SnippetOptions = {}): string {
   const id = checkedId(gaId, GA_ID, "GA4 measurement ID");
   const src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-  return `${consentAndStart()}gtag("config",${literal(id)});${loadAfterPageLoad(src)}`;
+  const params = options.redactParams ?? [];
+  const extra = params.length ? redactedConfig(params) : "";
+  return `${consentAndStart()}gtag("config",${literal(id)}${extra});${loadAfterPageLoad(src)}`;
 }
 
 export function gtmSnippet(gtmId: string): string {
@@ -45,9 +70,12 @@ export function gtmSnippet(gtmId: string): string {
 }
 
 /** The inline script for a page's <head>: Tag Manager when set, else GA4, else "" (no analytics). */
-export function analyticsSnippet(ids: AnalyticsIds): string {
-  if (ids.gtmId?.trim()) return gtmSnippet(ids.gtmId);
-  return ids.gaId?.trim() ? gaSnippet(ids.gaId) : "";
+export function analyticsSnippet(ids: AnalyticsIds, options: SnippetOptions = {}): string {
+  if (ids.gtmId?.trim()) {
+    if (options.redactParams?.length) throw new Error("redactParams works with a GA4 ID only: Tag Manager reads the page URL itself. Redact in the container, or use PUBLIC_GA_ID.");
+    return gtmSnippet(ids.gtmId);
+  }
+  return ids.gaId?.trim() ? gaSnippet(ids.gaId, options) : "";
 }
 
 export type VerificationCodes = { readonly google?: string; readonly bing?: string; readonly yandex?: string };

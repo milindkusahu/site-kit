@@ -24,10 +24,25 @@ function consentAndStart() {
 function loadAfterPageLoad(src) {
     return `(function(){function s(){var e=document.createElement("script");e.async=true;e.src=${literal(src)};document.head.appendChild(e)}if(document.readyState==="complete")s();else addEventListener("load",s,{once:true})})();`;
 }
-export function gaSnippet(gaId) {
+const PARAM = /^[A-Za-z0-9_.-]{1,40}$/;
+// An inline function for the browser: a URL with the named parameters and the hash removed. A referrer from
+// another site is left alone (its parameters aren't ours to know); an empty referrer stays empty.
+function redactor(params) {
+    for (const p of params)
+        if (!PARAM.test(p))
+            throw new Error(`redactParams entry "${p}" is not valid (expected ${PARAM.source}).`);
+    return `function(h){if(!h)return h;var u=new URL(h);if(u.origin!==location.origin)return h;${literal(params)}.forEach(function(p){u.searchParams.delete(p)});u.hash="";return u.href}`;
+}
+// The page's own URL and a same-site referrer both carry the parameters (a visitor on /?t=… who clicks a link).
+function redactedConfig(params) {
+    return `,(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)})`;
+}
+export function gaSnippet(gaId, options = {}) {
     const id = checkedId(gaId, GA_ID, "GA4 measurement ID");
     const src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-    return `${consentAndStart()}gtag("config",${literal(id)});${loadAfterPageLoad(src)}`;
+    const params = options.redactParams ?? [];
+    const extra = params.length ? redactedConfig(params) : "";
+    return `${consentAndStart()}gtag("config",${literal(id)}${extra});${loadAfterPageLoad(src)}`;
 }
 export function gtmSnippet(gtmId) {
     const id = checkedId(gtmId, GTM_ID, "Tag Manager container ID");
@@ -35,10 +50,13 @@ export function gtmSnippet(gtmId) {
     return `${consentAndStart()}dataLayer.push({"gtm.start":Date.now(),event:"gtm.js"});${loadAfterPageLoad(src)}`;
 }
 /** The inline script for a page's <head>: Tag Manager when set, else GA4, else "" (no analytics). */
-export function analyticsSnippet(ids) {
-    if (ids.gtmId?.trim())
+export function analyticsSnippet(ids, options = {}) {
+    if (ids.gtmId?.trim()) {
+        if (options.redactParams?.length)
+            throw new Error("redactParams works with a GA4 ID only: Tag Manager reads the page URL itself. Redact in the container, or use PUBLIC_GA_ID.");
         return gtmSnippet(ids.gtmId);
-    return ids.gaId?.trim() ? gaSnippet(ids.gaId) : "";
+    }
+    return ids.gaId?.trim() ? gaSnippet(ids.gaId, options) : "";
 }
 const VERIFICATION_NAMES = { google: "google-site-verification", bing: "msvalidate.01", yandex: "yandex-verification" };
 /** Search engine verification <meta> tags, skipping any code that is empty. */
