@@ -94,7 +94,7 @@ const verification = verificationMeta({ google: tracking.googleVerification, bin
 
 ## Markdown for agents
 
-Agents that send `Accept: text/markdown` get each page as Markdown, and browsers still get HTML. Every response from the Worker carries `Vary: Accept`. This replaces Cloudflare's own Markdown for Agents, which needs the Pro plan. It works on any Workers plan.
+Agents that send `Accept: text/markdown` get each page as Markdown, and browsers still get HTML. Every response from the Worker carries `Vary: Accept`. The Markdown answer carries `Link: <page>; rel="canonical"` (1.9.0+), and a copy fetched by its own `.md` URL gets `X-Robots-Tag: noindex` plus the same canonical link, so search engines index the page, never its copy. This replaces Cloudflare's own Markdown for Agents, which needs the Pro plan. It works on any Workers plan.
 
 1. After the build, write a `.md` copy next to every page: `"build": "astro build && site-kit markdown"`. Each copy has front matter (title, description, url) and only the page's `<main>`, with absolute links. The `[data-tool]` element becomes one sentence pointing at the page, and `dist/404.md` gets links to the sitemap and llms.txt. Pages without a `<main>` and the service worker's `/offline/` page are skipped.
 2. Serve the site through the kit's Worker in `wrangler.jsonc`. No Worker file in the project:

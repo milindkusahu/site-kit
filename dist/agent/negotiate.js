@@ -23,3 +23,8 @@ export function markdownTwin(pathname) {
     const last = pathname.slice(pathname.lastIndexOf("/") + 1);
     return last.includes(".") ? null : `${pathname}.md`;
 }
+export function pageOfTwin(pathname) {
+    if (!pathname.endsWith(".md") || pathname === NOT_FOUND_TWIN)
+        return null;
+    return pathname.endsWith("/index.md") ? pathname.slice(0, -"index.md".length) : pathname.slice(0, -".md".length);
+}

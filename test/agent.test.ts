@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { markdownTwin, prefersMarkdown } from "../src/agent/negotiate.ts";
+import { markdownTwin, pageOfTwin, prefersMarkdown } from "../src/agent/negotiate.ts";
 import { handle, type AssetsEnv } from "../src/agent/worker.ts";
 
 const HTML = "text/html; charset=utf-8";
@@ -61,6 +61,20 @@ describe("markdown negotiation", () => {
     expect(markdownTwin("/llms.txt")).toBeNull();
     expect(markdownTwin("/images/a.b/photo")).toBe("/images/a.b/photo.md");
   });
+
+  it("maps a markdown copy back to its page", () => {
+    expect(pageOfTwin("/index.md")).toBe("/");
+    expect(pageOfTwin("/square-crop/index.md")).toBe("/square-crop/");
+    expect(pageOfTwin("/about.md")).toBe("/about");
+    expect(pageOfTwin("/404.md")).toBeNull();
+    expect(pageOfTwin("/square-crop/")).toBeNull();
+    expect(pageOfTwin("/llms.txt")).toBeNull();
+  });
+
+  it("round-trips every page path through its copy", () => {
+    const page = fc.stringMatching(/^(\/[a-z0-9-]{1,12}){0,3}\/?$/).map((p) => (p === "" ? "/" : p));
+    fc.assert(fc.property(page, (path) => path === "/404" || pageOfTwin(markdownTwin(path) ?? "") === path));
+  });
 });
 
 describe("markdown Worker", () => {
@@ -114,5 +128,23 @@ describe("markdown Worker", () => {
   it("never sends markdown for a POST", async () => {
     const res = await get("/tool/", "text/markdown", "POST");
     expect(res.headers.get("content-type")).toBe(HTML);
+  });
+
+  it("points the markdown copy at its page with a canonical Link", async () => {
+    const res = await get("/tool/", "text/markdown");
+    expect(res.headers.get("link")).toBe('<https://x.example/tool/>; rel="canonical"');
+    expect((await get("/missing/", "text/markdown")).headers.get("link")).toBeNull();
+  });
+
+  it("keeps a copy fetched by its own URL out of the index", async () => {
+    const res = await get("/tool/index.md");
+    expect(res.headers.get("x-robots-tag")).toBe("noindex");
+    expect(res.headers.get("link")).toBe('<https://x.example/tool/>; rel="canonical"');
+    expect(res.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+    expect(await res.text()).toBe("# Tool");
+    const notFound = await get("/404.md");
+    expect(notFound.headers.get("x-robots-tag")).toBe("noindex");
+    expect(notFound.headers.get("link")).toBeNull();
+    expect((await get("/missing.md")).headers.get("x-robots-tag")).toBeNull();
   });
 });
