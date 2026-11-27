@@ -134,3 +134,19 @@ describe("security headers", () => {
     expect(file).toContain("immutable");
   });
 });
+
+describe("permissions policy", () => {
+  // Chromium (Playwright 1.65) logs "Unrecognized feature: 'browsing-topics'" as a console error on every page,
+  // which fails every site's no-console-errors test. Only features current browsers recognise go in.
+  it("lists only features current browsers recognise", () => {
+    const policy = securityHeaders().find((h) => h.key === "Permissions-Policy").value;
+    expect(policy).not.toContain("browsing-topics");
+    expect(policy).toContain("camera=()");
+  });
+
+  // WebKit logs "This document is not cross-origin isolated" on every navigation between two pages that send any
+  // Cross-Origin-Opener-Policy without COEP, and COEP can't be site-wide (it blocks ad iframes). Owner, 2026-11-27.
+  it("sends no opener policy", () => {
+    expect(securityHeaders().map((h) => h.key)).not.toContain("Cross-Origin-Opener-Policy");
+  });
+});

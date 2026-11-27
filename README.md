@@ -8,7 +8,7 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | --- | --- | --- |
 | SEO core | `@milindkusahu/site-kit/seo/create-seo` | `createSeo(SITE, SITE_PAGES)` gives titles, metadata, canonicals, breadcrumbs, the JSON-LD graph, sitemap, robots, llms.txt, manifest and registry checks |
 | SEO pieces | `@milindkusahu/site-kit/seo/{url,ads,share,types,…}` | Smaller helpers when you only need one |
-| Security headers | `@milindkusahu/site-kit/headers` | CSP, HSTS, nosniff, referrer, permissions and opener policy. Ads and analytics open only what they need |
+| Security headers | `@milindkusahu/site-kit/headers` | CSP, HSTS, nosniff, referrer and permissions policy (no COOP: WebKit warns on every navigation without COEP, 1.9.1). Ads and analytics open only what they need |
 | ESLint | `@milindkusahu/site-kit/eslint/shared` | The no-comments, no-barrel and boundaries rules, timer bans, banned UI libraries, complexity limits |
 | Image input | `@milindkusahu/site-kit/image/{open,heic,header,formats,problems,zip,download,batch}` | Open a picked file upright, HEIC fallback, refuse huge files from the header, reader-friendly errors, ZIP writer, download, one-at-a-time batch runner (see below) |
 | Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage}` | Feature steps, plus the above-the-fold and no-ad-near-the-tool tests |
