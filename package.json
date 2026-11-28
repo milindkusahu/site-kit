@@ -80,7 +80,7 @@
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "@types/node": "^22.20.5",
-    "eslint": "^9",
+    "eslint": "^10",
     "fast-check": "^4.10.2",
     "libheif-js": "1.23.5",
     "typescript": "^5.9.0",
