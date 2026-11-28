@@ -1,0 +1,15 @@
+import { test as base } from "@playwright/test";
+export { expect } from "@playwright/test";
+export const GA_HIT = /^https:\/\/([a-z0-9-]+\.)*(google-analytics|google)\.com\/g\/collect/;
+export function answerHit(route) {
+    return route.fulfill({ status: 204 });
+}
+export const test = base.extend({
+    noAnalyticsHits: [
+        async ({ context }, use) => {
+            await context.route(GA_HIT, answerHit);
+            await use(undefined);
+        },
+        { auto: true },
+    ],
+});

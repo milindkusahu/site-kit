@@ -11,7 +11,7 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | Security headers | `@milindkusahu/site-kit/headers` | CSP, HSTS, nosniff, referrer and permissions policy (no COOP: WebKit warns on every navigation without COEP, 1.9.1). Ads and analytics open only what they need |
 | ESLint | `@milindkusahu/site-kit/eslint/shared` | The no-comments, no-barrel and boundaries rules, timer bans, banned UI libraries, complexity limits |
 | Image input | `@milindkusahu/site-kit/image/{open,heic,header,formats,problems,zip,download,batch}` | Open a picked file upright, HEIC fallback, refuse huge files from the header, reader-friendly errors, ZIP writer, download, one-at-a-time batch runner (see below) |
-| Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage}` | Feature steps, plus the above-the-fold and no-ad-near-the-tool tests |
+| Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage,fixtures}` | Feature steps, the above-the-fold and no-ad-near-the-tool tests, and a `test` that answers every GA4 hit with a 204 so test runs never reach Google Analytics (`GA_HIT`, `answerHit` for a test that inspects hits itself) |
 | Audit | `@milindkusahu/site-kit/audit` | The crawler behind `site-kit audit` |
 | Markdown Worker | `dist/agent/worker.js`, `site-kit markdown` | Serves a Markdown copy of each page to agents that ask for it (see below) |
 | CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `redirects`, `headers` |

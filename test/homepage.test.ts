@@ -7,7 +7,8 @@ const registered = vi.hoisted((): Registered[] => []);
 
 vi.mock("@playwright/test", async () => {
   const { expect: vitestExpect } = await import("vitest");
-  return { test: (name: string, fn: Registered["fn"]) => registered.push({ name, fn }), expect: vitestExpect };
+  const test = Object.assign((name: string, fn: Registered["fn"]) => registered.push({ name, fn }), { extend: () => test });
+  return { test, expect: vitestExpect };
 });
 
 await import("../src/playwright/homepage.ts");
