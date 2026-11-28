@@ -83,7 +83,7 @@
     "eslint": "^9",
     "fast-check": "^4.10.2",
     "libheif-js": "1.23.5",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },
   "engines": {
