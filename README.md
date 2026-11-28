@@ -53,6 +53,8 @@ A `docs/design/references.json` with `"version": 2` adds the craft rules to `sit
 
 The headers include `Link: </llms.txt>; rel="describedby", </sitemap.xml>; rel="sitemap"` on every path, so the site must serve both files (a Next.js site needs its own `/llms.txt` route, e.g. from `seo.llmsTxt()`). A site that doesn't sets `"agentLinks": false` in `site-kit.config.json`, or passes `{ agentLinks: false }` to `securityHeaders()`.
 
+`SITE.whenToUse` (1.14.0+), a list of short jobs the site is right for, adds a "When to use" section to `llms.txt` above the page list. The manifest has `"id": "/"`.
+
 ### Image input (1.8.0+)
 
 Browser-only, one subpath per piece, so a page ships only what it imports.
@@ -80,7 +82,7 @@ else show(problemCopy(result, { accepted: "JPG, PNG, WebP or HEIC" })); // { tit
 
 ### Trailing-slash redirects (1.7.0+)
 
-End an Astro build with `astro build && site-kit redirects && site-kit markdown`. `site-kit redirects [dir]` (default `dist`) finds every built page (`<path>/index.html`) and writes `/<path> /<path>/ 301` plus `/index.html / 301` into `<dir>/_redirects`, so Cloudflare's `auto-trailing-slash` never answers with a 307. Rules from `public/_redirects` stay first and win; a source they already redirect isn't doubled. Running it twice gives the same file. It fails past Cloudflare's 2,000 static rules.
+End an Astro build with `astro build && site-kit redirects && site-kit markdown`. `site-kit redirects [dir]` (default `dist`) finds every built page (`<path>/index.html`) and writes `/<path> /<path>/ 301`, `/<path>/index.html /<path>/ 301` (1.14.0+) and `/index.html / 301` into `<dir>/_redirects`, so Cloudflare's `auto-trailing-slash` never answers with a 307. Rules from `public/_redirects` stay first and win; a source they already redirect isn't doubled. Running it twice gives the same file. It fails past Cloudflare's 2,000 static rules.
 
 ### Analytics and verification tags (1.7.0+)
 
@@ -96,7 +98,7 @@ const verification = verificationMeta({ google: tracking.googleVerification, bin
 {analytics && <script is:inline set:html={analytics} />}
 ```
 
-`PUBLIC_GTM_ID` wins over `PUBLIC_GA_ID`; with neither the snippet is empty. The snippet sets Consent Mode v2 to denied in the EEA, the UK and Switzerland before anything else runs, and loads the Google script only after the page `load` event. A malformed ID throws at build time rather than shipping. Set `"analytics": true` in `site-kit.config.json` (or either env variable) so the CSP allows Google's hosts.
+`PUBLIC_GTM_ID` wins over `PUBLIC_GA_ID`; with neither the snippet is empty. The snippet sets Consent Mode v2 to denied in the EEA, the UK and Switzerland before anything else runs, and loads the Google script only after the page `load` event. A malformed ID throws at build time rather than shipping. Set `"analytics": true` in `site-kit.config.json` (or either env variable) so the CSP allows Google's hosts. From 1.14.0 `connect-src` also allows `https://*.googletagmanager.com`, `https://*.g.doubleclick.net` and `https://www.google.com`, where GA4 sends its Google signals beacons.
 
 `redactParams` (1.10.0+, GA4 only) removes the named query parameters, and the hash, from the `page_location` and same-site `page_referrer` that GA4 records for every hit of the page. Use it for parameters that carry what a visitor typed, such as a share link's `?t=`: without it, GA4 sends the full URL, so the text reaches Google on every page_view and event, and on the next page as the referrer. Other parameters (`utm_*` included) are kept. With a Tag Manager ID it throws, because the container reads the URL itself; redact there instead.
 

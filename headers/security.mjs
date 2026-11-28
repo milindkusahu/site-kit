@@ -1,9 +1,11 @@
 const ANALYTICS = ["https://www.googletagmanager.com", "https://*.google-analytics.com", "https://*.analytics.google.com"];
+// @see https://developers.google.com/tag-platform/security/guides/csp
+const ANALYTICS_BEACONS = ["https://*.googletagmanager.com", "https://*.g.doubleclick.net", "https://www.google.com"];
 
 function csp({ dev = false, ads = "none", analytics = false, wasm = false } = {}) {
   const adsOn = ads !== "none" && ads !== "placeholder";
   const scripts = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : []), ...(wasm && !dev ? ["'wasm-unsafe-eval'"] : []), ...(analytics ? ANALYTICS : []), ...(adsOn ? ["https:"] : [])];
-  const connect = ["'self'", ...(analytics ? ANALYTICS : []), ...(adsOn ? ["https:"] : []), ...(dev ? ["ws:"] : [])];
+  const connect = ["'self'", ...(analytics ? [...ANALYTICS, ...ANALYTICS_BEACONS] : []), ...(adsOn ? ["https:"] : []), ...(dev ? ["ws:"] : [])];
   return [
     "default-src 'self'",
     `script-src ${scripts.join(" ")}`,

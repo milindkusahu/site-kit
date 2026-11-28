@@ -100,7 +100,7 @@ const COMMANDS = {
   ui: { run: () => asScript("checks/ui.mjs").then(() => process.exitCode ?? 0), help: "<url> [actions]  screenshot a page at phone and desktop widths" },
   assets: { run: assets, help: "icons, favicon, OG card, public/sw.js and the headers file from site-kit.config.json" },
   markdown: { run: markdown, help: "[dir]  after the build, write a markdown copy of every page for site-kit's Worker to serve to agents" },
-  redirects: { run: redirects, help: "[dir]  after the build, 301 each page without its trailing slash (and /index.html) in <dir>/_redirects" },
+  redirects: { run: redirects, help: "[dir]  after the build, 301 each page without its trailing slash, and its index.html, in <dir>/_redirects" },
   headers: { run: headers, help: "[--file]  print the security headers this project ships" },
 };
 

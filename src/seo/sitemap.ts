@@ -21,12 +21,15 @@ export function robotsTxt(site: SiteConfig): string {
 
 export function llmsTxt(site: SiteConfig, pages: readonly SitePage[]): string {
   const lines = indexable(pages).map((p) => `- [${p.title}](${absoluteUrl(site.origin, p.path)}): ${p.description}`);
-  return `# ${site.name}\n\n> ${site.description}\n\n## Pages\n\n${lines.join("\n")}\n`;
+  const uses = site.whenToUse ?? [];
+  const whenToUse = uses.length > 0 ? `## When to use\n\n${uses.map((use) => `- ${use}`).join("\n")}\n\n` : "";
+  return `# ${site.name}\n\n> ${site.description}\n\n${whenToUse}## Pages\n\n${lines.join("\n")}\n`;
 }
 
 export function webManifest(site: SiteConfig): string {
   return `${JSON.stringify(
     {
+      id: "/",
       name: site.name,
       short_name: site.name,
       description: site.description,

@@ -24,7 +24,7 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 describe("site-kit redirects", () => {
   it("301s every built page without its slash, and /index.html, to the canonical path", () => {
     writeRedirects(dir);
-    expect(read()).toBe(`${MARKER}\n/guides /guides/ 301\n/guides/how-to /guides/how-to/ 301\n/square-crop /square-crop/ 301\n/index.html / 301\n`);
+    expect(read()).toBe(`${MARKER}\n/guides /guides/ 301\n/guides/index.html /guides/ 301\n/guides/how-to /guides/how-to/ 301\n/guides/how-to/index.html /guides/how-to/ 301\n/square-crop /square-crop/ 301\n/square-crop/index.html /square-crop/ 301\n/index.html / 301\n`);
   });
 
   it("skips asset folders and folders without a page", () => {

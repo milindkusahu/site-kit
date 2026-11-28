@@ -35,6 +35,17 @@ const page = (path: string, extra: Partial<SitePage> = {}): SitePage => ({
 });
 
 describe("createSeo", () => {
+  it("gives the manifest a stable id", () => {
+    expect(JSON.parse(createSeo(site, [page("/", { type: "home" })]).webManifest())).toMatchObject({ id: "/", start_url: "/" });
+  });
+
+  it("adds a When to use section to llms.txt only when the site gives one", () => {
+    const pages = [page("/", { type: "home" })];
+    expect(createSeo(site, pages).llmsTxt()).not.toContain("## When to use");
+    const withUses = createSeo({ ...site, whenToUse: ["Joining photos into one image"] }, pages).llmsTxt();
+    expect(withUses).toContain("## When to use\n\n- Joining photos into one image\n\n## Pages");
+  });
+
   it("passes a valid registry", () => {
     const seo = createSeo(site, [page("/", { type: "home" }), page("/a/", { type: "howto" }), page("/b/", { type: "about" })]);
     expect(seo.problems()).toEqual([]);

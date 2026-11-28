@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 // Cloudflare's auto-trailing-slash answers /page with a 307. These rules make it a 301
-// to the canonical /page/, built from the pages that actually exist in the build output.
+// to the canonical /page/ (and /page/index.html likewise), built from the pages that actually exist in the build output.
 export const MARKER = "# site-kit redirects: generated after the build, do not edit below";
 export const MAX_STATIC_RULES = 2000;
 
@@ -18,7 +18,7 @@ function pageDirs(dir, rel = "") {
 export function trailingSlashRules(dir) {
   const rules = pageDirs(dir)
     .sort()
-    .map((rel) => `/${rel} /${rel}/ 301`);
+    .flatMap((rel) => [`/${rel} /${rel}/ 301`, `/${rel}/index.html /${rel}/ 301`]);
   return existsSync(path.join(dir, "index.html")) ? [...rules, "/index.html / 301"] : rules;
 }
 

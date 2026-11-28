@@ -87,6 +87,13 @@ describe("security headers", () => {
     expect(headerProblems(asHeaders(securityHeaders({ ads: "adsense", analytics: true })))).toEqual([]);
   });
 
+  it("lets GA4 send its Google signals beacons only when analytics is on", () => {
+    const csp = (options) => securityHeaders(options).find((h) => h.key === "Content-Security-Policy")?.value ?? "";
+    const connect = csp({ analytics: true }).match(/connect-src ([^;]+)/)?.[1].split(" ") ?? [];
+    expect(connect).toEqual(expect.arrayContaining(["https://www.google.com", "https://*.g.doubleclick.net", "https://*.googletagmanager.com"]));
+    expect(csp({})).not.toContain("google.com");
+  });
+
   it("locks frames and plugins when ads are off, and opens frames only when ads are on", () => {
     const off = securityHeaders().find((h) => h.key === "Content-Security-Policy")?.value ?? "";
     const on = securityHeaders({ ads: "adsense" }).find((h) => h.key === "Content-Security-Policy")?.value ?? "";
