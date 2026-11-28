@@ -14,7 +14,7 @@ The code every Next.js and Astro site of mine shares, kept in one place. Fix a b
 | Playwright | `@milindkusahu/site-kit/playwright/{steps,homepage,fixtures}` | Feature steps, the above-the-fold and no-ad-near-the-tool tests, and a `test` that answers every GA4 hit with a 204 so test runs never reach Google Analytics (`GA_HIT`, `answerHit` for a test that inspects hits itself) |
 | Audit | `@milindkusahu/site-kit/audit` | The crawler behind `site-kit audit` |
 | Markdown Worker | `dist/agent/worker.js`, `site-kit markdown` | Serves a Markdown copy of each page to agents that ask for it (see below) |
-| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `redirects`, `headers` |
+| CLI | `site-kit <command>` | `rules`, `plan`, `deps`, `secrets`, `audit`, `cwv`, `ui`, `assets`, `markdown`, `redirects`, `indexnow`, `headers` |
 
 Run `bunx site-kit` in a project for the full command list.
 
@@ -83,6 +83,10 @@ else show(problemCopy(result, { accepted: "JPG, PNG, WebP or HEIC" })); // { tit
 ### Trailing-slash redirects (1.7.0+)
 
 End an Astro build with `astro build && site-kit redirects && site-kit markdown`. `site-kit redirects [dir]` (default `dist`) finds every built page (`<path>/index.html`) and writes `/<path> /<path>/ 301`, `/<path>/index.html /<path>/ 301` (1.14.0+) and `/index.html / 301` into `<dir>/_redirects`, so Cloudflare's `auto-trailing-slash` never answers with a 307. Rules from `public/_redirects` stay first and win; a source they already redirect isn't doubled. Running it twice gives the same file. It fails past Cloudflare's 2,000 static rules.
+
+### IndexNow (1.17.0+)
+
+Put a key in `site-kit.config.json`: `"indexnow": { "key": "<8 to 128 letters, digits or dashes>" }` (generate one with `node -e "console.log(crypto.randomUUID().replaceAll('-',''))"`). The key is public by design: it is served as a file. End the build with `site-kit indexnow key` (writes `dist/<key>.txt`; pass a directory to change it), so the key file ships with every deploy. After a production deploy, `site-kit indexnow ping https://<domain>` reads the live `/sitemap.xml` (following a sitemap index), checks that `/<key>.txt` serves the key, then POSTs the URLs to `https://api.indexnow.org/indexnow` in batches of 10,000, keeping only URLs on that host. It exits 0 only on 200 or 202. `--dry-run` reads the sitemap and prints the count without sending anything.
 
 ### Analytics and verification tags (1.7.0+)
 
