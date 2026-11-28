@@ -26,7 +26,8 @@ function runAt(snippet: string, href: string, referrer = "") {
   const context: Record<string, unknown> = { document, Date, URL, location: new URL(href), addEventListener: () => 0 };
   context["window"] = context;
   vm.runInNewContext(snippet, context);
-  return { dataLayer: (context["dataLayer"] as unknown[]).map((args) => Array.from(args as ArrayLike<unknown>)) };
+  const raw = context["dataLayer"] as unknown[];
+  return { raw, dataLayer: raw.map((args) => Array.from(args as ArrayLike<unknown>)) };
 }
 
 describe("gaSnippet", () => {
@@ -59,38 +60,50 @@ describe("gaSnippet", () => {
   });
 });
 
-describe("gaSnippet redactParams", () => {
-  // Query parameters that carry what a visitor typed (a share link's ?t=) must never reach Google in page_location.
-  function config(snippet: string, href: string, referrer = "") {
-    const page = runAt(snippet, href, referrer);
-    return page.dataLayer.find((a) => a[0] === "config");
+describe("redactParams", () => {
+  // Query parameters that carry what a visitor typed (a share link's ?t=) must never reach Google. They go in
+  // gtag("set"), before any tag loads: the Google tag's own page_view ignores page_location passed to config
+  // (captured 2026-11-28 on a live GA4 property, through both gtag.js and a GTM container).
+  function set(snippet: string, href: string, referrer = "") {
+    return runAt(snippet, href, referrer).dataLayer.find((a) => a[0] === "set");
   }
+  const SNIPPETS = { "GA4": (o = {}) => gaSnippet("G-TEST123", o), "Tag Manager": (o = {}) => gtmSnippet("GTM-TEST1", o) };
 
-  it("sends page_location without the named parameters, keeping the rest, without the hash (as GA4 records it)", () => {
-    const cfg = config(gaSnippet("G-TEST123", { redactParams: ["t"] }), "https://x.com/a/?t=Isabella&utm_source=news&s=rye#stencil");
-    expect(cfg?.[2]).toEqual({ page_location: "https://x.com/a/?utm_source=news&s=rye", page_referrer: "" });
-  });
+  for (const [name, snippet] of Object.entries(SNIPPETS)) {
+    it(`${name}: sets page_location without the named parameters, keeping the rest, without the hash`, () => {
+      expect(set(snippet({ redactParams: ["t"] }), "https://x.com/a/?t=Isabella&utm_source=news&s=rye#stencil")?.[1]).toEqual({ page_location: "https://x.com/a/?utm_source=news&s=rye", page_referrer: "" });
+    });
+
+    it(`${name}: sets the redacted URLs before anything that starts a tag`, () => {
+      const commands = runAt(snippet({ redactParams: ["t"] }), "https://x.com/?t=a").raw.map((a) => (a as { event?: string }).event ?? (a as ArrayLike<unknown>)[0]);
+      const setAt = commands.indexOf("set");
+      expect(setAt).toBeGreaterThan(commands.indexOf("consent"));
+      for (const later of ["js", "config", "gtm.js"]) if (commands.includes(later)) expect(commands.indexOf(later)).toBeGreaterThan(setAt);
+    });
+
+    it(`${name}: sets nothing without redactParams`, () => {
+      expect(set(snippet(), "https://x.com/?t=a")).toBeUndefined();
+    });
+  }
 
   it("redacts a same-site referrer and leaves another site's alone", () => {
     const snippet = gaSnippet("G-TEST123", { redactParams: ["t"] });
-    expect(config(snippet, "https://x.com/fonts/", "https://x.com/?t=Isabella&s=rye")?.[2]).toMatchObject({ page_referrer: "https://x.com/?s=rye" });
-    expect(config(snippet, "https://x.com/fonts/", "https://other.org/?t=1")?.[2]).toMatchObject({ page_referrer: "https://other.org/?t=1" });
+    expect(set(snippet, "https://x.com/fonts/", "https://x.com/?t=Isabella&s=rye")?.[1]).toMatchObject({ page_referrer: "https://x.com/?s=rye" });
+    expect(set(snippet, "https://x.com/fonts/", "https://other.org/?t=1")?.[1]).toMatchObject({ page_referrer: "https://other.org/?t=1" });
   });
 
-  it("leaves config untouched without redactParams", () => {
-    expect(config(gaSnippet("G-TEST123"), "https://x.com/?t=a")).toEqual(["config", "G-TEST123"]);
+  it("leaves config as the bare ID", () => {
+    expect(runAt(gaSnippet("G-TEST123", { redactParams: ["t"] }), "https://x.com/?t=a").dataLayer.find((a) => a[0] === "config")).toEqual(["config", "G-TEST123"]);
   });
 
   it("refuses a parameter name that could break out of the script", () => {
     expect(() => gaSnippet("G-TEST123", { redactParams: ['t"]});alert(1)//'] })).toThrow(/not valid/);
+    expect(() => gtmSnippet("GTM-TEST1", { redactParams: ['t"]});alert(1)//'] })).toThrow(/not valid/);
   });
 
-  it("refuses the option with a Tag Manager ID, which reads the URL itself", () => {
-    expect(() => analyticsSnippet({ gtmId: "GTM-ABC1234" }, { redactParams: ["t"] })).toThrow(/GA4 ID only/);
-  });
-
-  it("passes the option through analyticsSnippet", () => {
+  it("passes the option through analyticsSnippet for either ID", () => {
     expect(analyticsSnippet({ gaId: "G-TEST123" }, { redactParams: ["t"] })).toContain("page_location");
+    expect(analyticsSnippet({ gtmId: "GTM-ABC1234" }, { redactParams: ["t"] })).toBe(gtmSnippet("GTM-ABC1234", { redactParams: ["t"] }));
   });
 });
 

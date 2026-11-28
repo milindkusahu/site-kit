@@ -17,9 +17,9 @@ function checkedId(value, pattern, label) {
 function literal(value) {
     return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
-function consentAndStart() {
+function consentAndStart(options) {
     const consent = { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", region: NO_COOKIE_REGIONS };
-    return `window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("consent","default",${literal(consent)});gtag("js",new Date());`;
+    return `window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("consent","default",${literal(consent)});${redactedSet(options.redactParams ?? [])}gtag("js",new Date());`;
 }
 function loadAfterPageLoad(src) {
     return `(function(){function s(){var e=document.createElement("script");e.async=true;e.src=${literal(src)};document.head.appendChild(e)}if(document.readyState==="complete")s();else addEventListener("load",s,{once:true})})();`;
@@ -34,28 +34,25 @@ function redactor(params) {
     return `function(h){if(!h)return h;var u=new URL(h);if(u.origin!==location.origin)return h;${literal(params)}.forEach(function(p){u.searchParams.delete(p)});u.hash="";return u.href}`;
 }
 // The page's own URL and a same-site referrer both carry the parameters (a visitor on /?t=… who clicks a link).
-function redactedConfig(params) {
-    return `,(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)})`;
+function redactedSet(params) {
+    if (!params.length)
+        return "";
+    return `gtag("set",(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)}));`;
 }
 export function gaSnippet(gaId, options = {}) {
     const id = checkedId(gaId, GA_ID, "GA4 measurement ID");
     const src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-    const params = options.redactParams ?? [];
-    const extra = params.length ? redactedConfig(params) : "";
-    return `${consentAndStart()}gtag("config",${literal(id)}${extra});${loadAfterPageLoad(src)}`;
+    return `${consentAndStart(options)}gtag("config",${literal(id)});${loadAfterPageLoad(src)}`;
 }
-export function gtmSnippet(gtmId) {
+export function gtmSnippet(gtmId, options = {}) {
     const id = checkedId(gtmId, GTM_ID, "Tag Manager container ID");
     const src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`;
-    return `${consentAndStart()}dataLayer.push({"gtm.start":Date.now(),event:"gtm.js"});${loadAfterPageLoad(src)}`;
+    return `${consentAndStart(options)}dataLayer.push({"gtm.start":Date.now(),event:"gtm.js"});${loadAfterPageLoad(src)}`;
 }
 /** The inline script for a page's <head>: Tag Manager when set, else GA4, else "" (no analytics). */
 export function analyticsSnippet(ids, options = {}) {
-    if (ids.gtmId?.trim()) {
-        if (options.redactParams?.length)
-            throw new Error("redactParams works with a GA4 ID only: Tag Manager reads the page URL itself. Redact in the container, or use PUBLIC_GA_ID.");
-        return gtmSnippet(ids.gtmId);
-    }
+    if (ids.gtmId?.trim())
+        return gtmSnippet(ids.gtmId, options);
     return ids.gaId?.trim() ? gaSnippet(ids.gaId, options) : "";
 }
 const VERIFICATION_NAMES = { google: "google-site-verification", bing: "msvalidate.01", yandex: "yandex-verification" };

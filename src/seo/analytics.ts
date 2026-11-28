@@ -23,9 +23,9 @@ function literal(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
-function consentAndStart(): string {
+function consentAndStart(options: SnippetOptions): string {
   const consent = { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", region: NO_COOKIE_REGIONS };
-  return `window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("consent","default",${literal(consent)});gtag("js",new Date());`;
+  return `window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("consent","default",${literal(consent)});${redactedSet(options.redactParams ?? [])}gtag("js",new Date());`;
 }
 
 function loadAfterPageLoad(src: string): string {
@@ -34,9 +34,10 @@ function loadAfterPageLoad(src: string): string {
 
 export type SnippetOptions = {
   /**
-   * Query parameters removed from the page_location GA4 records (and from every event of the page), for parameters
-   * that carry what a visitor typed, such as a share link's `?t=`. GA4 only: a Tag Manager container reads the URL
-   * itself, so analyticsSnippet refuses the option with a GTM ID rather than promise a redaction it can't make.
+   * Query parameters removed from the page_location and same-site page_referrer that every Google tag on the page
+   * records, for parameters that carry what a visitor typed, such as a share link's `?t=`. Works with a GA4 ID and
+   * with a Tag Manager (Google tag) container: the values go in gtag("set") before any tag loads, because the
+   * Google tag's own page_view ignores page_location passed to config.
    */
   readonly redactParams?: readonly string[];
 };
@@ -51,30 +52,26 @@ function redactor(params: readonly string[]): string {
 }
 
 // The page's own URL and a same-site referrer both carry the parameters (a visitor on /?t=… who clicks a link).
-function redactedConfig(params: readonly string[]): string {
-  return `,(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)})`;
+function redactedSet(params: readonly string[]): string {
+  if (!params.length) return "";
+  return `gtag("set",(function(r){return{page_location:r(location.href),page_referrer:r(document.referrer)}})(${redactor(params)}));`;
 }
 
 export function gaSnippet(gaId: string, options: SnippetOptions = {}): string {
   const id = checkedId(gaId, GA_ID, "GA4 measurement ID");
   const src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-  const params = options.redactParams ?? [];
-  const extra = params.length ? redactedConfig(params) : "";
-  return `${consentAndStart()}gtag("config",${literal(id)}${extra});${loadAfterPageLoad(src)}`;
+  return `${consentAndStart(options)}gtag("config",${literal(id)});${loadAfterPageLoad(src)}`;
 }
 
-export function gtmSnippet(gtmId: string): string {
+export function gtmSnippet(gtmId: string, options: SnippetOptions = {}): string {
   const id = checkedId(gtmId, GTM_ID, "Tag Manager container ID");
   const src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`;
-  return `${consentAndStart()}dataLayer.push({"gtm.start":Date.now(),event:"gtm.js"});${loadAfterPageLoad(src)}`;
+  return `${consentAndStart(options)}dataLayer.push({"gtm.start":Date.now(),event:"gtm.js"});${loadAfterPageLoad(src)}`;
 }
 
 /** The inline script for a page's <head>: Tag Manager when set, else GA4, else "" (no analytics). */
 export function analyticsSnippet(ids: AnalyticsIds, options: SnippetOptions = {}): string {
-  if (ids.gtmId?.trim()) {
-    if (options.redactParams?.length) throw new Error("redactParams works with a GA4 ID only: Tag Manager reads the page URL itself. Redact in the container, or use PUBLIC_GA_ID.");
-    return gtmSnippet(ids.gtmId);
-  }
+  if (ids.gtmId?.trim()) return gtmSnippet(ids.gtmId, options);
   return ids.gaId?.trim() ? gaSnippet(ids.gaId, options) : "";
 }
 
